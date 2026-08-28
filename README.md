@@ -31,7 +31,9 @@ lines represented **19 actual scrambles**.
 ## Rules it plays by
 
 **Only two data sources: log files on disk, and the public ESI API.** No reading EVE client
-memory, no injected input, no automation of the game. The Windows API calls it makes are
+memory, no screen capture, no injected input, no automation of the game. This is audited in
+[EULA-COMPLIANCE.md](docs/EULA-COMPLIANCE.md) and enforced by tests that fail the build if a
+prohibited API is ever introduced. The Windows API calls it makes are
 read-only window queries (`EnumWindows`, `GetWindowText`, `GetWindowRect`) used to match a
 character to a window and to position panels.
 
@@ -193,6 +195,7 @@ not parse.
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | design constraints, data flow, every component, known gaps |
 | [LOG-FORMATS.md](docs/LOG-FORMATS.md) | complete EVE log format reference — encodings, naming, every line shape |
 | [EWAR-DETECTION.md](docs/EWAR-DETECTION.md) | what is detectable, the webifier investigation, alternatives considered |
+| [EULA-COMPLIANCE.md](docs/EULA-COMPLIANCE.md) | audit against the EVE EULA: no memory reads, no screen capture, no input |
 | [CONFIGURATION.md](docs/CONFIGURATION.md) | every configuration key |
 | [DEVELOPMENT.md](docs/DEVELOPMENT.md) | building, testing, adding event types, gotchas |
 
