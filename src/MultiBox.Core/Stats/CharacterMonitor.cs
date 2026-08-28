@@ -45,6 +45,28 @@ public sealed class CharacterMonitor
 
     public DateTime LastEventAt { get; private set; }
 
+    /// <summary>Wall-clock instant at which <see cref="LastEventAt"/> was actually read.</summary>
+    public DateTime LastEventObservedAt { get; private set; }
+
+    /// <summary>
+    /// The log's own clock, carried forward to wall-clock now.
+    ///
+    /// EVE does not flush its gamelog as it fights; it buffers and writes in bursts, so a
+    /// line describing something that happened half a minute ago can reach us now. Reading a
+    /// ten-second rolling window at <see cref="DateTime.UtcNow"/> therefore discards every
+    /// sample the instant it arrives whenever that flush lag exceeds the window — the numbers
+    /// sit at zero through an entire fight while the combat log, which has no window, fills
+    /// up normally.
+    ///
+    /// Anchoring to the newest event's own timestamp and advancing it by however long we have
+    /// been waiting since keeps the window aligned with the data, and still lets the readings
+    /// decay to zero once the shooting actually stops.
+    /// </summary>
+    public DateTime ProjectedNow(DateTime wallClockNow) =>
+        LastEventAt == default
+            ? wallClockNow
+            : LastEventAt + (wallClockNow - LastEventObservedAt);
+
     /// <summary>
     /// Advances both sparklines by one sample. Called on a timer rather than per event so a
     /// quiet second occupies the same width as a busy one.
@@ -60,7 +82,12 @@ public sealed class CharacterMonitor
     /// incoming stats, so a fleet-mate's scramble seen in this log does not light up
     /// this pilot's indicators.
     /// </summary>
-    public void Apply(GameLogEvent e)
+    /// <param name="observedAt">
+    /// Wall-clock instant this line was read, which is later than the event's own timestamp by
+    /// however long EVE sat on it. Defaults to the event's timestamp, so replaying a captured
+    /// log produces identical numbers to the live session.
+    /// </param>
+    public void Apply(GameLogEvent e, DateTime? observedAt = null)
     {
         // The session broadcasts every event to every monitor, so each one must filter.
         // An outgoing event is only ever written to the acting pilot's own log, which makes
@@ -73,7 +100,10 @@ public sealed class CharacterMonitor
             return;
 
         if (e.Timestamp > LastEventAt)
+        {
             LastEventAt = e.Timestamp;
+            LastEventObservedAt = observedAt ?? e.Timestamp;
+        }
 
         // Another client witnessing an effect on me also records which ship I am flying.
         if (aboutMe && e.VictimShip is not null)

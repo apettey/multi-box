@@ -149,8 +149,11 @@ public sealed class CharacterCardViewModel : ObservableObject
     public double CardOpacity => _isDragging ? 0.4 : 1.0;
 
     /// <summary>Pulls current values from the monitor. Called on the UI timer.</summary>
-    public void Refresh(DateTime now)
+    public void Refresh(DateTime wallClockNow)
     {
+        // Every window is read on the log's clock rather than ours - see ProjectedNow.
+        var now = _monitor.ProjectedNow(wallClockNow);
+
         DpsIn = (int)Math.Round(_monitor.DamageIn.PerSecond(now));
         DpsOut = (int)Math.Round(_monitor.DamageOut.PerSecond(now));
         RepsIn = (int)Math.Round(_monitor.RepsIn.PerSecond(now));

@@ -91,8 +91,10 @@ public sealed class MultiBoxSession : IDisposable
         var now = DateTime.UtcNow;
         lock (_gate)
         {
+            // On the log's clock, not ours. A twelve second EWAR hold measured against
+            // wall-clock expires before a burst-flushed line has even arrived.
             foreach (var monitor in _monitors.Values)
-                monitor.Ewar.Expire(now);
+                monitor.Ewar.Expire(monitor.ProjectedNow(now));
         }
     }
 
@@ -117,10 +119,13 @@ public sealed class MultiBoxSession : IDisposable
         if (!MarkSeen(evt.DedupKey()))
             return;
 
+        // Pass the moment we read the line, not the moment it describes: EVE flushes its
+        // gamelog in bursts, and the monitors need to know how stale their newest sample is.
+        var observedAt = DateTime.UtcNow;
         lock (_gate)
         {
             foreach (var monitor in _monitors.Values)
-                monitor.Apply(evt);
+                monitor.Apply(evt, observedAt);
         }
 
         CombatEvent?.Invoke(evt);

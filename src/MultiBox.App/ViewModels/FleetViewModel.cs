@@ -182,7 +182,7 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     {
         var now = DateTime.UtcNow;
         foreach (var monitor in _session.Characters)
-            monitor.SampleHistory(now);
+            monitor.SampleHistory(monitor.ProjectedNow(now));
     }
 
     private void Rescan()

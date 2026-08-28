@@ -69,6 +69,13 @@ screenshots current.
   different client depending on history you cannot see.
 - **Pressing a group's backward hotkey first landed one short of the end** of the ring rather
   than on its last member.
+- **The DPS, reps, cap and neut counters read zero during a fight** while the per-character
+  combat log filled normally. EVE buffers its gamelog and flushes it in bursts, so a line can
+  arrive well after the moment it describes. The rolling windows were anchored to
+  `DateTime.UtcNow`, so whenever that flush lag exceeded the ten-second stat window every
+  sample was discarded the instant it arrived. Windows and EWAR hold times are now read on
+  the log's own clock, carried forward by however long we have been waiting, which keeps them
+  aligned with the data and still lets the readings decay once the shooting stops.
 
 ### Security
 
