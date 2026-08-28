@@ -49,8 +49,8 @@ public sealed class HotkeySwitcher : IDisposable
 
     public HotkeySwitcher(MultiBoxConfig config) => _config = config;
 
-    /// <summary>Character whose client the switcher last raised, per group.</summary>
-    private readonly Dictionary<int, string> _lastRaised = new();
+    /// <summary>Where the last press left off. Owns the restart-on-group-change rule.</summary>
+    private readonly CycleNavigator _navigator = new();
 
     /// <summary>Asked for each candidate: is this character's client actually running?</summary>
     public Func<string, IntPtr>? ResolveClient { get; set; }
@@ -74,6 +74,10 @@ public sealed class HotkeySwitcher : IDisposable
     public void Register()
     {
         Unregister();
+
+        // Membership may have changed, so a remembered position no longer means anything.
+        _navigator.Reset();
+
         if (_handle == IntPtr.Zero)
             return;
 
@@ -125,17 +129,12 @@ public sealed class HotkeySwitcher : IDisposable
         if (binding.GroupIndex >= _config.CycleGroups.Count)
             return;
 
-        var group = _config.CycleGroups[binding.GroupIndex];
-        _lastRaised.TryGetValue(binding.GroupIndex, out var current);
+        var next = _navigator.Next(_config.CycleGroups, binding.GroupIndex,
+            name => Resolve(name) != IntPtr.Zero, binding.Forward);
 
-        var next = group.Step(current, name => Resolve(name) != IntPtr.Zero, binding.Forward);
-        if (next is null)
+        if (next is null || !ClientFocus.Activate(Resolve(next)))
             return;
 
-        if (!ClientFocus.Activate(Resolve(next)))
-            return;
-
-        _lastRaised[binding.GroupIndex] = next;
         Switched?.Invoke(next);
     }
 

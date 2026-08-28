@@ -24,6 +24,10 @@ public sealed class CycleGroup
     /// <summary>
     /// The member after <paramref name="current"/>, wrapping, skipping anyone whose client is
     /// not running. Returns null when the group has no runnable member.
+    ///
+    /// A null <paramref name="current"/> means "not currently anywhere in this group", and
+    /// enters the ring at the end you are heading away from: the first member going forward,
+    /// the last going backward. Both directions then reach every member in one pass.
     /// </summary>
     public string? Step(string? current, Func<string, bool> isRunning, bool forward)
     {
@@ -34,15 +38,15 @@ public sealed class CycleGroup
             ? -1
             : Members.FindIndex(m => m.Equals(current, StringComparison.OrdinalIgnoreCase));
 
-        // Walk the whole ring once. Starting from -1 means "not currently on this group",
-        // in which case forward should land on the first member rather than the second.
-        for (var hop = 1; hop <= Members.Count; hop++)
+        // Walk the whole ring once, taking the first candidate that is actually running.
+        for (var hop = 0; hop < Members.Count; hop++)
         {
-            var offset = forward ? hop : -hop;
-            var index = ((start + offset) % Members.Count + Members.Count) % Members.Count;
-            var candidate = Members[index];
-            if (isRunning(candidate))
-                return candidate;
+            var index = start < 0
+                ? (forward ? hop : Members.Count - 1 - hop)
+                : ((start + (forward ? hop + 1 : -(hop + 1))) % Members.Count + Members.Count) % Members.Count;
+
+            if (isRunning(Members[index]))
+                return Members[index];
         }
 
         return null;

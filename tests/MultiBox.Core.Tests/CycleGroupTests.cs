@@ -192,6 +192,98 @@ public class CycleGroupTests
     }
 
     [Fact]
+    public void BackwardFromAFreshGroupLandsOnTheLastMember()
+    {
+        var group = Group("A", "B", "C");
+
+        // Not "B". Entering a ring backwards from nowhere means starting at its end.
+        Assert.Equal("C", group.Step(null, _ => true, forward: false));
+    }
+
+    // --- navigator: where a press resumes from -----------------------------------------------
+
+    private static List<CycleGroup> TwoGroups() => new()
+    {
+        Group("A", "B", "C"),
+        Group("X", "Y")
+    };
+
+    [Fact]
+    public void RepeatedPressesOfOneGroupWalkThroughIt()
+    {
+        var groups = TwoGroups();
+        var nav = new CycleNavigator();
+
+        Assert.Equal("A", nav.Next(groups, 0, _ => true, forward: true));
+        Assert.Equal("B", nav.Next(groups, 0, _ => true, forward: true));
+        Assert.Equal("C", nav.Next(groups, 0, _ => true, forward: true));
+    }
+
+    [Fact]
+    public void ReturningToAGroupRestartsItFromTheBeginning()
+    {
+        var groups = TwoGroups();
+        var nav = new CycleNavigator();
+
+        nav.Next(groups, 0, _ => true, forward: true);   // group 1 -> A
+        nav.Next(groups, 0, _ => true, forward: true);   // group 1 -> B
+        nav.Next(groups, 1, _ => true, forward: true);   // group 2 -> X
+
+        // Back to group 1. Resuming at C would mean the same keypress lands somewhere
+        // different depending on history the player can no longer see.
+        Assert.Equal("A", nav.Next(groups, 0, _ => true, forward: true));
+    }
+
+    [Fact]
+    public void SwitchingGroupsAlsoRestartsTheGroupBeingSwitchedTo()
+    {
+        var groups = TwoGroups();
+        var nav = new CycleNavigator();
+
+        nav.Next(groups, 1, _ => true, forward: true);   // group 2 -> X
+        nav.Next(groups, 1, _ => true, forward: true);   // group 2 -> Y
+        nav.Next(groups, 0, _ => true, forward: true);   // group 1 -> A
+
+        Assert.Equal("X", nav.Next(groups, 1, _ => true, forward: true));
+    }
+
+    [Fact]
+    public void AFailedStepDoesNotMoveThePosition()
+    {
+        var groups = TwoGroups();
+        var nav = new CycleNavigator();
+
+        Assert.Equal("A", nav.Next(groups, 0, _ => true, forward: true));
+        Assert.Null(nav.Next(groups, 0, _ => false, forward: true));
+
+        // Nothing was running, so the next successful press continues from A, not past it.
+        Assert.Equal("B", nav.Next(groups, 0, _ => true, forward: true));
+    }
+
+    [Fact]
+    public void ResetSendsTheNextPressBackToTheStart()
+    {
+        var groups = TwoGroups();
+        var nav = new CycleNavigator();
+
+        nav.Next(groups, 0, _ => true, forward: true);
+        nav.Next(groups, 0, _ => true, forward: true);
+        nav.Reset();
+
+        Assert.Equal("A", nav.Next(groups, 0, _ => true, forward: true));
+    }
+
+    [Fact]
+    public void AnUnknownGroupIndexIsIgnored()
+    {
+        var groups = TwoGroups();
+        var nav = new CycleNavigator();
+
+        Assert.Null(nav.Next(groups, 7, _ => true, forward: true));
+        Assert.Null(nav.Next(groups, -1, _ => true, forward: true));
+    }
+
+    [Fact]
     public void CharacterFromKeyStripsTheWindowTitlePrefix()
     {
         Assert.Equal("Commander Tyrael", MultiBoxConfig.CharacterFromKey("EVE - Commander Tyrael"));

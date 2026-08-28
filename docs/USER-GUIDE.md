@@ -90,7 +90,12 @@ anywhere in this application.
 A cycle group is an ordered ring of characters and a hotkey. Press the hotkey and the next
 client in the ring comes to the foreground; press it again and you move on, wrapping at the
 end. Clients that are not running are skipped, so a group survives a character being logged
-out.
+out. A backward hotkey walks the same ring the other way, starting from its last member.
+
+**Switching groups starts the new group over.** If you cycle part-way through group 1, use
+group 2, then press group 1 again, group 1 restarts at its first member rather than resuming
+where you left it. A group's hotkey therefore always means "take me to the top of this
+group", and never depends on what you did several keypresses ago.
 
 Open it with `⇄ CYCLE GROUPS`. For each of the five groups:
 

@@ -62,6 +62,13 @@ screenshots current.
 - **The Cycle Groups window failed to open**, because its XAML referenced a converter defined
   later in the same resource dictionary and `StaticResource` cannot resolve forward
   references.
+- **A cycle group resumed mid-ring after you had used a different group.** Cycling group 1 to
+  its second member, switching to group 2, then pressing group 1 again continued from the
+  third member instead of starting over. Position is now remembered only for the group used
+  last, so returning to a group restarts it — the same keypress no longer lands on a
+  different client depending on history you cannot see.
+- **Pressing a group's backward hotkey first landed one short of the end** of the ring rather
+  than on its last member.
 
 ### Security
 
