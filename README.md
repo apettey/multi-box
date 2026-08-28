@@ -1,15 +1,15 @@
 # MultiBox
 
 A single dashboard for multiboxing EVE Online: per-character DPS, remote reps and incoming
-electronic warfare with distinct audio alerts, plus one deduplicated read-only chat window
-instead of the same message repeated once per client.
+electronic warfare with distinct audio alerts, live previews of every client, and one
+deduplicated read-only chat window instead of the same message repeated once per client.
 
 Built to replace a screen full of separate windows — one PyEveLiveDPS instance per
 character, plus four copies of every chat channel — with one place to look.
 
 > **Status:** core is built and verified against real logs (62 tests, 99.97% line coverage,
-> Windows binaries publish clean, EULA compliance audited and enforced in CI). The WPF window itself has not yet been rendered on
-> Windows, and the on-screen layout is expected to change once it runs. See
+> Windows binaries publish clean, EULA compliance audited and enforced in CI). The dashboard
+> and the client previews are running on Windows. Targets .NET 10. See
 > [known gaps](docs/ARCHITECTURE.md#known-gaps).
 
 ---
@@ -33,10 +33,16 @@ lines represented **19 actual scrambles**.
 **Only two data sources: log files on disk, and the public ESI API.** No reading EVE client
 memory, no screen capture, no injected input, no automation of the game. This is audited in
 [EULA-COMPLIANCE.md](docs/EULA-COMPLIANCE.md) and enforced by tests that fail the build if a
-prohibited API is ever introduced. The only Windows API calls it makes are six read-only
-window queries (`EnumWindows`, `IsWindowVisible`, `GetWindowTextLength`, `GetWindowText`,
-`GetWindowRect`, `GetForegroundWindow`), used to learn which character is in which window.
-It has no ability to move, focus or send anything to a game window.
+prohibited API is ever introduced. The Windows API calls it makes are six read-only window
+queries (`EnumWindows`, `IsWindowVisible`, `GetWindowTextLength`, `GetWindowText`,
+`GetWindowRect`, `GetForegroundWindow`), used to learn which character is in which window,
+plus the four DWM thumbnail calls that draw the client previews. It has no ability to move,
+focus or send anything to a game window.
+
+The previews are **not** screen capture. `DwmRegisterThumbnail` asks the Windows compositor
+to draw a live view of a window into one of ours, the same way eve-o-preview, Alt-Tab and the
+taskbar hover previews do. No pixel data ever reaches this application, so it cannot read
+what it is showing you. Displaying is not reading.
 
 ESI is a **verification step, not a dependency**: character ids come free in log filenames
 and names come free in log banners, so ESI only confirms the two agree.

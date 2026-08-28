@@ -34,6 +34,13 @@ The application never sees a single pixel of the EVE client. It knows a window's
 **position and size** (`GetWindowRect`) and its **title bar text** (`GetWindowText`), which
 is metadata the window manager exposes about every window on the desktop, not image content.
 
+**The client preview panels are not an exception to this.** They use the DWM thumbnail API
+(`DwmRegisterThumbnail`) - the same mechanism eve-o-preview, Alt-Tab and the taskbar hover
+previews use. The application hands the compositor a source window handle and a destination
+rectangle, and Windows draws the preview straight to the screen itself. No image data is
+returned to this process, so there is still nothing to sample, decode or run OCR over: the
+application cannot tell you what is *in* the preview it asked for. Displaying is not reading.
+
 This was a live design decision rather than an accident. Screen-scraping the HUD EWAR icons
 is the *only* technique that could detect stasis webs, which the logs do not record. It was
 explicitly rejected — see [EWAR-DETECTION.md](EWAR-DETECTION.md). The feature was dropped
@@ -55,8 +62,7 @@ operation would require.
 
 ## Complete native API surface
 
-This is the entire list. Every entry is a read-only query, and all of them concern *windows
-on the desktop*, not the game process.
+This is the entire list. All of it concerns *windows on the desktop*, never the game process.
 
 | Function | What it does | Can it affect the game? |
 |---|---|---|
@@ -66,10 +72,17 @@ on the desktop*, not the game process.
 | `GetWindowText` | read a window title (`EVE - Commander Tyrael`) | no — read-only |
 | `GetWindowRect` | read a window's position and size | no — read-only |
 | `GetForegroundWindow` | which window has focus | no — reads focus, cannot set it |
+| `DwmRegisterThumbnail` | ask DWM to draw a live preview of a window | no — cannot move, focus or resize the source |
+| `DwmUpdateThumbnailProperties` | where and how large the preview is drawn | no — affects our own panel only |
+| `DwmUnregisterThumbnail` | stop drawing a preview | no |
+| `DwmQueryThumbnailSourceSize` | aspect ratio of the previewed window | no — a size, not image content |
 
-**Six functions, all read-only.** This is a strict subset of what eve-o-preview — a widely
-used and long-tolerated tool — requires, since eve-o-preview additionally moves windows and
-switches client focus, and MultiBox does neither.
+**Ten functions.** The six window calls are read-only queries. The four DWM calls run in the
+opposite direction — they tell the compositor where to draw and return nothing about the
+source — so neither group can observe or alter the game. This remains a subset of what
+eve-o-preview — a widely used and long-tolerated tool — requires: eve-o-preview draws its
+previews with the same thumbnail API, and additionally moves windows and switches client
+focus, which MultiBox does not.
 
 ### Hardening applied during this review
 
@@ -90,7 +103,7 @@ a unit test enforces it.
 | Prohibited | Status | Evidence |
 |---|---|---|
 | Reading/modifying client memory | **not done** | no memory APIs; no process handle; no elevation |
-| Screen scraping / pixel reading / OCR | **not done** | no capture APIs; deliberately rejected feature |
+| Screen scraping / pixel reading / OCR | **not done** | no capture APIs; previews are drawn by DWM, never read back |
 | Injecting code into the client | **not done** | no `CreateRemoteThread`, no `LoadLibrary`, no DLL |
 | Automating gameplay / botting | **not done** | no input APIs; the app has no way to act in game |
 | Input broadcasting (one keypress → many clients) | **not done** | no `SendInput`, `keybd_event`, `PostMessage`, `SendMessage`, `SendKeys`; no hotkey registration |

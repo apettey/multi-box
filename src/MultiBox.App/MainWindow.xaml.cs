@@ -9,6 +9,7 @@ namespace MultiBox.App;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
+    private readonly PreviewManager _previews;
     private bool _autoScroll = true;
 
     public MainWindow()
@@ -26,16 +27,25 @@ public partial class MainWindow : Window
         _viewModel = new MainViewModel(config, configPath);
         DataContext = _viewModel;
 
+        _previews = new PreviewManager(config, _viewModel, this);
+
         Topmost = config.AlwaysOnTop;
         Opacity = config.Opacity;
         TopmostToggle.IsChecked = config.AlwaysOnTop;
+        PreviewsToggle.IsChecked = config.ShowPreviews;
 
         RestorePosition(config);
 
-        Loaded += (_, _) => _viewModel.Start();
+        Loaded += (_, _) =>
+        {
+            _viewModel.Start();
+            _previews.Enabled = PreviewsToggle.IsChecked == true;
+        };
         Closing += (_, _) =>
         {
             SavePosition(config);
+            config.ShowPreviews = PreviewsToggle.IsChecked == true;
+            _previews.Dispose();
             _viewModel.SaveConfig();
             _viewModel.Dispose();
         };
@@ -76,6 +86,13 @@ public partial class MainWindow : Window
     {
         config.SetPanelLocation("MainWindow", null, new Pt((int)Left, (int)Top));
         config.AlwaysOnTop = Topmost;
+    }
+
+    private void Previews_Changed(object sender, RoutedEventArgs e)
+    {
+        // Before the dashboard is shown there is no owner to attach panels to.
+        if (IsLoaded && sender is CheckBox box)
+            _previews.Enabled = box.IsChecked == true;
     }
 
     private void Topmost_Changed(object sender, RoutedEventArgs e)

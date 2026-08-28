@@ -138,6 +138,9 @@
             <CheckBox DockPanel.Dock="Right" x:Name="TopmostToggle" Content="Always on top"
                       Foreground="{StaticResource Dim}" VerticalAlignment="Center"
                       Checked="Topmost_Changed" Unchecked="Topmost_Changed"/>
+            <CheckBox DockPanel.Dock="Right" x:Name="PreviewsToggle" Content="Client previews"
+                      Foreground="{StaticResource Dim}" VerticalAlignment="Center" Margin="8,0,0,0"
+                      Checked="Previews_Changed" Unchecked="Previews_Changed"/>
         </DockPanel>
 
         <!-- Pilot tiles -->

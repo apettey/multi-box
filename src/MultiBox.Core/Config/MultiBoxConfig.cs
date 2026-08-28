@@ -40,6 +40,9 @@ public sealed class MultiBoxConfig
     public bool AlwaysOnTop { get; set; } = true;
     public double Opacity { get; set; } = 0.95;
 
+    /// <summary>Show a floating live preview panel for each running client.</summary>
+    public bool ShowPreviews { get; set; } = true;
+
     /// <summary>Channels shown in the unified chat pane. Empty means all channels.</summary>
     public List<string> ChatChannels { get; set; } = new() { "Fleet", "Local", "Corp", "ViTA Intel" };
 

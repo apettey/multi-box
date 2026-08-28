@@ -87,7 +87,15 @@ public class EulaComplianceTests
             "GetWindowTextLength",
             "GetWindowText",
             "GetWindowRect",
-            "GetForegroundWindow"
+            "GetForegroundWindow",
+
+            // DWM thumbnails. These are the one group that is not a query: they tell the
+            // compositor where to draw a preview. They are still incapable of affecting the
+            // source window, and they return no image data - see docs/EULA-COMPLIANCE.md.
+            "DwmRegisterThumbnail",
+            "DwmUnregisterThumbnail",
+            "DwmUpdateThumbnailProperties",
+            "DwmQueryThumbnailSourceSize"
         };
 
         var declared = new List<string>();
