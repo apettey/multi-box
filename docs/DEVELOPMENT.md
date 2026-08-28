@@ -5,6 +5,10 @@
 - .NET 10 SDK
 - Windows only for *running* the GUI; everything else works on any platform
 
+Before changing anything, read [AGENTS.md](../AGENTS.md): every change is expected to update
+[CHANGELOG.md](../CHANGELOG.md), the documentation, and — for UI changes — the screenshots in
+`docs/images/`.
+
 ### Installing the SDK
 
 On Windows: download the .NET 10 SDK installer.

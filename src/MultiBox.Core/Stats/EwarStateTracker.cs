@@ -32,17 +32,17 @@ public sealed class EwarStateTracker
     }
 
     /// <summary>Feeds an incoming EWAR event. Returns true when this starts a new application.</summary>
-    public bool Apply(EwarType type, DateTime at, string? source, string? module)
+    public bool Apply(EwarType type, DateTime at, string? source, string? module, string? sourceShip = null)
     {
         Expire(at);
 
         if (_active.TryGetValue(type, out var existing))
         {
-            existing.Refresh(at, source, module);
+            existing.Refresh(at, source, module, sourceShip);
             return false;
         }
 
-        var active = new ActiveEwar(type, at, source, module);
+        var active = new ActiveEwar(type, at, source, module, sourceShip);
         _active[type] = active;
         EwarApplied?.Invoke(active);
         return true;
@@ -74,13 +74,14 @@ public sealed class EwarStateTracker
 
 public sealed class ActiveEwar
 {
-    internal ActiveEwar(EwarType type, DateTime at, string? source, string? module)
+    internal ActiveEwar(EwarType type, DateTime at, string? source, string? module, string? sourceShip = null)
     {
         Type = type;
         FirstSeen = at;
         LastSeen = at;
         Source = source;
         Module = module;
+        SourceShip = sourceShip;
         Count = 1;
     }
 
@@ -89,9 +90,22 @@ public sealed class ActiveEwar
     public DateTime LastSeen { get; private set; }
     public string? Source { get; private set; }
     public string? Module { get; private set; }
+
+    /// <summary>Ship the aggressor was flying, when the line named it.</summary>
+    public string? SourceShip { get; private set; }
+
     public int Count { get; private set; }
 
-    internal void Refresh(DateTime at, string? source, string? module)
+    /// <summary>Badge text: ship then pilot, the way the log identifies an aggressor.</summary>
+    public string? Describe() => (SourceShip, Source) switch
+    {
+        (not null, not null) => SourceShip + " \"" + Source + "\"",
+        (not null, null) => SourceShip,
+        (null, not null) => Source,
+        _ => null
+    };
+
+    internal void Refresh(DateTime at, string? source, string? module, string? sourceShip = null)
     {
         if (at > LastSeen)
             LastSeen = at;
@@ -100,5 +114,7 @@ public sealed class ActiveEwar
             Source = source;
         if (module is not null)
             Module = module;
+        if (sourceShip is not null)
+            SourceShip = sourceShip;
     }
 }

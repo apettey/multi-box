@@ -40,8 +40,58 @@ public sealed class MultiBoxConfig
     public bool AlwaysOnTop { get; set; } = true;
     public double Opacity { get; set; } = 0.95;
 
-    /// <summary>Show a floating live preview panel for each running client.</summary>
+    /// <summary>Show the live client thumbnail in each character card.</summary>
     public bool ShowPreviews { get; set; } = true;
+
+    /// <summary>Pulse card borders, EWAR badges and the tank block. Off means colour only.</summary>
+    public bool AlertFlash { get; set; } = true;
+
+    /// <summary>Speak a spoken warning when a new web lands.</summary>
+    public bool VoiceAlerts { get; set; } = true;
+
+    /// <summary>
+    /// Clicking a thumbnail brings that EVE client to the foreground, as eve-o-preview does.
+    /// </summary>
+    public bool ClickToFocus { get; set; } = true;
+
+    /// <summary>Cards per squad tab. Ten fills a 5x2 grid on a 1440p monitor.</summary>
+    public int SquadSize { get; set; } = 10;
+
+    /// <summary>
+    /// Fleet role per character name: DPS, LOGI, CMD or EWAR. Drives the chip on each card.
+    /// Roles cannot be inferred reliably from a log - a Guardian that has not repaired
+    /// anything yet looks identical to a idle battleship - so they are declared here.
+    /// </summary>
+    public Dictionary<string, string> CharacterRoles { get; set; } = new();
+
+    /// <summary>Card order after drag-and-drop, by character name. Unlisted names append.</summary>
+    public List<string> CharacterOrder { get; set; } = new();
+
+    /// <summary>
+    /// Fast Screen Switcher groups. Five is eve-o-preview's limit and the number its config
+    /// format can express, which is the format this imports from.
+    /// </summary>
+    public List<CycleGroup> CycleGroups { get; set; } = new();
+
+    /// <summary>Display names per character, imported from eve-o's PerClientAliases.</summary>
+    public Dictionary<string, string> Aliases { get; set; } = new();
+
+    public const int MaxCycleGroups = 5;
+
+    /// <summary>Pads <see cref="CycleGroups"/> out to the fixed five so the UI can index it.</summary>
+    public void EnsureCycleGroups()
+    {
+        while (CycleGroups.Count < MaxCycleGroups)
+            CycleGroups.Add(new CycleGroup());
+        if (CycleGroups.Count > MaxCycleGroups)
+            CycleGroups.RemoveRange(MaxCycleGroups, CycleGroups.Count - MaxCycleGroups);
+    }
+
+    /// <summary>Character name from an "EVE - Name" window-title key.</summary>
+    public static string CharacterFromKey(string windowTitle) =>
+        windowTitle.StartsWith("EVE - ", StringComparison.OrdinalIgnoreCase)
+            ? windowTitle["EVE - ".Length..].Trim()
+            : windowTitle.Trim();
 
     /// <summary>Channels shown in the unified chat pane. Empty means all channels.</summary>
     public List<string> ChatChannels { get; set; } = new() { "Fleet", "Local", "Corp", "ViTA Intel" };

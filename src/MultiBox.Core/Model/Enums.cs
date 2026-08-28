@@ -12,8 +12,24 @@ public enum CombatEventKind
     Damage,
     RemoteRepair,
     EnergyNeutralized,
+    CapacitorTransfer,
     Ewar,
     Miss
+}
+
+/// <summary>
+/// How a combat-log row reads at a glance. Damage splits by size because a card showing
+/// twenty rows of identical red tells you nothing about which hit mattered.
+/// </summary>
+public enum CombatLogKind
+{
+    DamageHeavy,
+    DamageLight,
+    Reps,
+    Cap,
+    Neut,
+    Ewar,
+    Idle
 }
 
 /// <summary>

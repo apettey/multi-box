@@ -53,9 +53,14 @@ public class EulaComplianceTests
         { "PostMessage", "can deliver input to another window" },
         { "SendKeys", "synthesises keystrokes" },
         { "SetWindowsHookEx", "installs a system-wide hook" },
-        { "SetForegroundWindow", "takes control of window focus" },
         { "SetWindowPos", "moves, resizes or reorders another window" },
     };
+
+    // SetForegroundWindow and ShowWindow were deliberately removed from the list above when
+    // thumbnail click-to-focus was added. They raise one window that the user just clicked,
+    // which is what eve-o-preview does and is not what the EULA prohibits: the prohibition is
+    // on automating gameplay and broadcasting input, and every input API remains banned. The
+    // allow-list below is what keeps that decision from silently widening.
 
     [Theory]
     [MemberData(nameof(ProhibitedApis))]
@@ -88,6 +93,17 @@ public class EulaComplianceTests
             "GetWindowText",
             "GetWindowRect",
             "GetForegroundWindow",
+
+            // Raises the single client whose thumbnail was clicked. See the note above.
+            "SetForegroundWindow",
+            "ShowWindow",
+            "IsIconic",
+
+            // Fast Screen Switcher hotkeys. RegisterHotKey reserves specific combinations and
+            // reports only those; unlike a keyboard hook it cannot observe other keystrokes,
+            // and it cannot send any. SetWindowsHookEx stays banned above for that reason.
+            "RegisterHotKey",
+            "UnregisterHotKey",
 
             // DWM thumbnails. These are the one group that is not a query: they tell the
             // compositor where to draw a preview. They are still incapable of affecting the

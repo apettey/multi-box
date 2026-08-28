@@ -24,4 +24,10 @@
     <ProjectReference Include="..\MultiBox.Core\MultiBox.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Spoken web warnings. Microsoft-published wrapper over the SAPI voices Windows
+         already ships; MultiBox.Core remains dependency-free. -->
+    <PackageReference Include="System.Speech" Version="9.0.0" />
+  </ItemGroup>
+
 </Project>

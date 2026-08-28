@@ -15,6 +15,7 @@ public sealed class CharacterMonitor
         RepsOut = new RollingWindow(w);
         RepsIn = new RollingWindow(w);
         NeutIn = new RollingWindow(w);
+        CapTransferIn = new RollingWindow(w);
         Ewar = new EwarStateTracker(ewarHold);
     }
 
@@ -27,9 +28,32 @@ public sealed class CharacterMonitor
     public RollingWindow RepsOut { get; }
     public RollingWindow RepsIn { get; }
     public RollingWindow NeutIn { get; }
+
+    /// <summary>Remote capacitor received. Unverified against captured logs - see GamelogParser.</summary>
+    public RollingWindow CapTransferIn { get; }
+
     public EwarStateTracker Ewar { get; }
 
+    /// <summary>Trailing samples behind the incoming-damage sparkline.</summary>
+    public MetricHistory DamageInHistory { get; } = new();
+
+    /// <summary>Trailing samples behind the reps-in sparkline, drawn against the same axis.</summary>
+    public MetricHistory RepsInHistory { get; } = new();
+
+    /// <summary>Recent lines about this character, newest first.</summary>
+    public CombatLogBuffer CombatLog { get; } = new();
+
     public DateTime LastEventAt { get; private set; }
+
+    /// <summary>
+    /// Advances both sparklines by one sample. Called on a timer rather than per event so a
+    /// quiet second occupies the same width as a busy one.
+    /// </summary>
+    public void SampleHistory(DateTime now)
+    {
+        DamageInHistory.Add(DamageIn.PerSecond(now));
+        RepsInHistory.Add(RepsIn.PerSecond(now));
+    }
 
     /// <summary>
     /// Applies one parsed event. Only events whose victim is this character update its
@@ -85,17 +109,65 @@ public sealed class CharacterMonitor
                 if (e.Direction == Direction.Incoming && aboutMe)
                 {
                     NeutIn.Add(e.Timestamp, e.Amount);
-                    Ewar.Apply(EwarType.EnergyNeutralizer, e.Timestamp, e.Counterparty?.Name, e.Module);
+                    Ewar.Apply(EwarType.EnergyNeutralizer, e.Timestamp, e.Counterparty?.Name, e.Module,
+                        e.Counterparty?.Ship);
                 }
+                break;
+
+            case CombatEventKind.CapacitorTransfer:
+                if (e.Direction == Direction.Incoming && aboutMe)
+                    CapTransferIn.Add(e.Timestamp, e.Amount);
                 break;
 
             case CombatEventKind.Ewar:
                 if (e.Direction == Direction.Incoming && aboutMe && e.Ewar is { } type)
-                    Ewar.Apply(type, e.Timestamp, e.Counterparty?.Name, e.Module);
+                    Ewar.Apply(type, e.Timestamp, e.Counterparty?.Name, e.Module, e.Counterparty?.Ship);
                 break;
         }
 
+        if (aboutMe)
+            RecordLogLine(e);
     }
+
+    /// <summary>
+    /// Turns an event into the one-line form the card shows. Only events landing on this
+    /// character are recorded: the card answers "what is happening to me", and its own
+    /// outgoing damage already has a dedicated readout.
+    /// </summary>
+    private void RecordLogLine(GameLogEvent e)
+    {
+        if (e.Direction != Direction.Incoming)
+            return;
+
+        var who = e.Counterparty?.Ship ?? e.Counterparty?.Name;
+        var from = who is null ? string.Empty : $" from {who}";
+        var by = who is null ? string.Empty : $" by {who}";
+
+        var (text, kind) = e.Kind switch
+        {
+            CombatEventKind.Damage =>
+                ($"{e.Quality ?? "Hits"} {e.Amount}{from}",
+                 e.Amount >= HeavyHitThreshold ? CombatLogKind.DamageHeavy : CombatLogKind.DamageLight),
+
+            CombatEventKind.RemoteRepair => ($"+{e.Amount} rep{from}", CombatLogKind.Reps),
+            CombatEventKind.CapacitorTransfer => ($"+{e.Amount} cap{from}", CombatLogKind.Cap),
+            CombatEventKind.EnergyNeutralized => ($"-{e.Amount} GJ neut{from}", CombatLogKind.Neut),
+
+            CombatEventKind.Ewar when e.Ewar is { } type =>
+                ($"{EwarTypeInfo.DisplayName(type)}{by}", CombatLogKind.Ewar),
+
+            _ => (string.Empty, CombatLogKind.Idle)
+        };
+
+        if (text.Length > 0)
+            CombatLog.Add(new CombatLogEntry(e.Timestamp, text, kind));
+    }
+
+    /// <summary>
+    /// Above this, a hit is drawn in full red. Below it, muted. The split exists so a wall of
+    /// chip damage does not look the same as the volley that actually threatens the ship.
+    /// </summary>
+    private const int HeavyHitThreshold = 200;
 
     public void SetShip(string? ship) => Ship = ship;
 }

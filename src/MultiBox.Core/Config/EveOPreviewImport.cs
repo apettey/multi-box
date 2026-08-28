@@ -49,8 +49,79 @@ public static class EveOPreviewImport
             }
         }
 
+        ImportAliases(root, target);
+        ImportCycleGroups(root, target);
+
         return true;
     }
+
+    private static void ImportAliases(JsonElement root, MultiBoxConfig target)
+    {
+        if (!root.TryGetProperty("PerClientAliases", out var aliases) ||
+            aliases.ValueKind != JsonValueKind.Object)
+            return;
+
+        foreach (var entry in aliases.EnumerateObject())
+        {
+            if (entry.Value.ValueKind == JsonValueKind.String &&
+                entry.Value.GetString() is { Length: > 0 } alias)
+                target.Aliases[MultiBoxConfig.CharacterFromKey(entry.Name)] = alias;
+        }
+    }
+
+    /// <summary>
+    /// Reads CycleGroupNForwardHotkeys / BackwardHotkeys / ClientsOrder for groups 1..5.
+    ///
+    /// ClientsOrder is a map of window title to a 1-based position. Ties are legal in
+    /// eve-o's format and are broken by insertion order, so the sort has to be stable -
+    /// OrderBy is, and that is the only reason this is not a plain Sort.
+    /// </summary>
+    private static void ImportCycleGroups(JsonElement root, MultiBoxConfig target)
+    {
+        target.EnsureCycleGroups();
+
+        for (var i = 1; i <= MultiBoxConfig.MaxCycleGroups; i++)
+        {
+            var group = target.CycleGroups[i - 1];
+
+            group.ForwardHotkeys = ReadHotkeys(root, $"CycleGroup{i}ForwardHotkeys");
+            group.BackwardHotkeys = ReadHotkeys(root, $"CycleGroup{i}BackwardHotkeys");
+
+            if (!root.TryGetProperty($"CycleGroup{i}ClientsOrder", out var order) ||
+                order.ValueKind != JsonValueKind.Object)
+                continue;
+
+            group.Members = order.EnumerateObject()
+                .Select(p => (Name: MultiBoxConfig.CharacterFromKey(p.Name),
+                              Position: p.Value.TryGetInt32(out var v) ? v : int.MaxValue))
+                .OrderBy(p => p.Position)
+                .Select(p => p.Name)
+                .ToList();
+        }
+    }
+
+    /// <summary>eve-o writes hotkeys as either a single string or an array of them.</summary>
+    private static List<string> ReadHotkeys(JsonElement root, string name)
+    {
+        if (!root.TryGetProperty(name, out var value))
+            return new List<string>();
+
+        return value.ValueKind switch
+        {
+            JsonValueKind.String => Split(value.GetString()),
+            JsonValueKind.Array => value.EnumerateArray()
+                .Where(e => e.ValueKind == JsonValueKind.String)
+                .SelectMany(e => Split(e.GetString()))
+                .ToList(),
+            _ => new List<string>()
+        };
+    }
+
+    private static List<string> Split(string? raw) =>
+        string.IsNullOrWhiteSpace(raw)
+            ? new List<string>()
+            : raw.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                 .ToList();
 
     private static int GetInt(JsonElement obj, string name) =>
         obj.TryGetProperty(name, out var v) && v.TryGetInt32(out var i) ? i : 0;

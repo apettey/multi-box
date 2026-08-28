@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0a0d11;}
+a{color:#6ab0f3;text-decoration:none;}a:hover{color:#9cc7f7;}
+@keyframes threatpulse{0%,100%{box-shadow:0 0 0 1px #ff5c5c66, 0 0 18px #ff5c5c33;}50%{box-shadow:0 0 0 1px #ff5c5ccc, 0 0 26px #ff5c5c55;}}
+@keyframes webflash{0%,100%{background:#4dabf733;box-shadow:0 0 0 1px #4dabf7,0 0 12px #4dabf788;}50%{background:#4dabf766;box-shadow:0 0 0 2px #74c0fc,0 0 20px #4dabf7cc;}}
+@keyframes tankred{0%,100%{background:#ff5c5c1a;box-shadow:0 0 0 1px #ff5c5c88;}50%{background:#ff5c5c40;box-shadow:0 0 0 2px #ff5c5c,0 0 16px #ff5c5c99;}}
+@keyframes repgreen{0%,100%{background:#4cc38a14;box-shadow:0 0 0 1px #4cc38a66;}50%{background:#4cc38a2e;box-shadow:0 0 0 1px #4cc38acc,0 0 12px #4cc38a66;}}
+::-webkit-scrollbar{width:8px;}::-webkit-scrollbar-thumb{background:#232b35;border-radius:4px;}::-webkit-scrollbar-track{background:transparent;}
+</style>
+</helmet>
+<div style="height:100vh;overflow:auto;background:#0a0d11;"><div style="min-width:2200px;min-height:1200px;height:100vh;display:flex;flex-direction:column;color:#cfd8e3;font-family:'IBM Plex Sans',sans-serif;">
+  <div style="display:flex;align-items:center;gap:24px;padding:10px 16px;border-bottom:1px solid #1d242e;background:#0d1117;flex:none;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:8px;height:8px;background:#4cc38a;border-radius:50%;"></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;letter-spacing:2px;color:#e8eef5;">FLEET COMMAND</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5c6875;letter-spacing:1px;">PELD + EVE-O · UNIFIED</div>
+    </div>
+    <div style="display:flex;gap:28px;margin-left:auto;">
+      <div style="display:flex;flex-direction:column;gap:1px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#5c6875;">FLEET INCOMING</span><span style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#ff5c5c;">{{ totIn }}</span></div>
+      <div style="display:flex;flex-direction:column;gap:1px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#5c6875;">REPS IN</span><span style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#4cc38a;">{{ totReps }}</span></div>
+      <div style="display:flex;flex-direction:column;gap:1px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#5c6875;">NEUT PRESSURE</span><span style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#4dabf7;">{{ totNeut }}</span></div>
+      <div style="display:flex;flex-direction:column;gap:1px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#5c6875;">EWAR ALERTS</span><span style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:{{ alertColor }};">{{ totEwar }}</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="display:flex;gap:2px;background:#131920;border:1px solid #232b35;border-radius:4px;padding:2px;">
+        <div style="padding:4px 12px;background:#232b35;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8eef5;">SQUAD 1 · 10</div>
+        <div style="padding:4px 12px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5c6875;cursor:pointer;" style-hover="color:#cfd8e3;">SQUAD 2</div>
+      </div>
+      <div onClick="{{ testVoice }}" title="Test voice alert" style="cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;color:#4dabf7;border:1px solid #4dabf755;border-radius:3px;padding:4px 10px;" style-hover="background:#4dabf71a;">🔊 VOICE</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#8a96a3;">18:42:07 EVE</div>
+    </div>
+  </div>
+  <div style="flex:1;display:flex;gap:10px;padding:10px;min-height:0;">
+    <div style="flex:1;display:grid;grid-template-columns:{{ gridCols }};grid-template-rows:{{ gridRows }};gap:10px;min-width:0;">
+      <sc-for list="{{ chars }}" as="c" hint-placeholder-count="10">
+        <div draggable="true" onDragStart="{{ c.dragStart }}" onDragOver="{{ c.dragOver }}" onDrop="{{ c.dropOn }}" style="background:#10151b;border:1px solid {{ c.border }};border-radius:5px;display:flex;flex-direction:column;overflow:hidden;min-height:0;animation:{{ c.anim }};opacity:{{ c.opacity }};cursor:grab;">
+          <div style="display:flex;align-items:baseline;gap:8px;padding:9px 10px 6px;">
+            <span style="font-size:14px;font-weight:600;color:#e8eef5;white-space:nowrap;flex:none;">{{ c.name }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5c6875;white-space:nowrap;">{{ c.ship }}</span>
+            <span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9px;color:{{ c.roleColor }};border:1px solid {{ c.roleColor }};border-radius:3px;padding:1px 5px;letter-spacing:1px;">{{ c.role }}</span>
+          </div>
+          <sc-if value="{{ showThumbs }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ c.focus }}" title="Click to bring this client to front" style="margin:0 10px;aspect-ratio:16/9;flex:none;border:1px solid #1d242e;border-radius:3px;background:repeating-linear-gradient(45deg,#0c1015,#0c1015 6px,#0e1319 6px,#0e1319 12px);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;" style-hover="border-color:#4dabf7;box-shadow:0 0 0 1px #4dabf755;">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#48545f;">eve-o live preview</span>
+              <span style="position:absolute;bottom:4px;right:6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#48545f;">{{ c.key }}</span>
+            </div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:2px;padding:6px 8px 4px;margin:2px;border-radius:4px;animation:{{ c.tankAnim }};">
+            <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:#5c6875;">INCOMING DPS</span>
+            <sc-if value="{{ c.tanking }}" hint-placeholder-val="{{ false }}"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;color:#ff5c5c;">▲ EXCEEDS REPS</span></sc-if>
+            <sc-if value="{{ c.stable }}" hint-placeholder-val="{{ false }}"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;color:#4cc38a;">● REPS HOLDING</span></sc-if></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;color:{{ c.inColor }};">{{ c.in }}</span>
+              <svg width="100%" height="22" viewBox="0 0 100 22" preserveAspectRatio="none" style="flex:1;min-width:0;"><polyline points="{{ c.sparkRep }}" fill="none" stroke="#4cc38a" stroke-width="1.4" opacity="0.8" vector-effect="non-scaling-stroke"></polyline><polyline points="{{ c.sparkIn }}" fill="none" stroke="#ff5c5c" stroke-width="1.4" opacity="0.85" vector-effect="non-scaling-stroke"></polyline></svg>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;padding:6px 10px 4px;">
+            <div style="display:flex;flex-direction:column;"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:#5c6875;">DPS OUT</span><span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:{{ c.dpsOutColor }};">{{ c.dpsOut }}</span></div>
+            <div style="display:flex;flex-direction:column;"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:#5c6875;">REPS IN</span><span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#4cc38a;">{{ c.reps }}</span></div>
+            <div style="display:flex;flex-direction:column;"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:#5c6875;">CAP XFER</span><span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#58a6ff;">{{ c.capx }}</span></div>
+            <div style="display:flex;flex-direction:column;"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:#5c6875;">NEUT/NOS</span><span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:{{ c.neutColor }};">{{ c.neut }}</span></div>
+          </div>
+          <div style="flex:1;min-height:0;margin:6px 10px 0;padding:6px 8px;border-top:1px solid #1a212a;overflow-y:auto;display:flex;flex-direction:column;gap:3px;">
+            <sc-for list="{{ c.log }}" as="l" hint-placeholder-count="3">
+              <div style="display:flex;gap:6px;align-items:baseline;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.4;">
+                <span style="color:#48545f;flex:none;">{{ l.t }}</span>
+                <span style="color:{{ l.color }};">{{ l.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 10px 10px;min-height:24px;align-content:flex-end;flex:none;">
+            <sc-for list="{{ c.ewar }}" as="e" hint-placeholder-count="0">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;color:{{ e.color }};background:{{ e.bg }};border:1px solid {{ e.color }};border-radius:3px;padding:2px 7px;display:inline-flex;gap:5px;align-items:baseline;animation:{{ e.anim }};">{{ e.type }}<span style="font-weight:400;color:#8a96a3;letter-spacing:0;">{{ e.src }}</span></span>
+            </sc-for>
+            <sc-if value="{{ c.clear }}" hint-placeholder-val="{{ false }}"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:#3a4550;padding:2px 0;">NO EWAR</span></sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="width:440px;flex:none;display:flex;flex-direction:column;min-height:0;background:#10151b;border:1px solid #232b35;border-radius:5px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #1d242e;">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:2px;color:#e8eef5;">UNIFIED COMMS</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#5c6875;border:1px solid #232b35;border-radius:3px;padding:1px 5px;">READ ONLY</span>
+        <span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#4cc38a;">142 dupes merged</span>
+      </div>
+      <div style="display:flex;gap:4px;padding:8px 12px 4px;flex-wrap:wrap;max-height:64px;overflow-y:auto;flex:none;">
+        <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+          <span onClick="{{ f.pick }}" style="cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;padding:3px 10px;border-radius:3px;border:1px solid {{ f.bc }};color:{{ f.fg }};background:{{ f.bg }};" style-hover="border-color:#3a4550;">{{ f.name }}</span>
+        </sc-for>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:4px 12px 10px;display:flex;flex-direction:column;gap:7px;">
+        <sc-for list="{{ msgs }}" as="m" hint-placeholder-count="10">
+          <div style="display:flex;gap:8px;align-items:baseline;font-size:13px;line-height:1.45;">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5c6875;flex:none;">{{ m.t }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;color:{{ m.chColor }};flex:none;min-width:52px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ m.ch }}</span>
+            <span style="color:#cfd8e3;"><span style="font-weight:600;color:#e8eef5;">{{ m.sender }} › </span>{{ m.text }}</span>
+            <sc-if value="{{ m.multi }}" hint-placeholder-val="{{ false }}"><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#48545f;flex:none;" title="duplicate copies merged across clients">×{{ m.seen }}</span></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="padding:7px 12px;border-top:1px solid #1d242e;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#48545f;letter-spacing:0.5px;">×N = identical message merged from N client windows · newest first</div>
+    </div>
+  </div>
+  <sc-if value="{{ hasFocus }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeFocus }}" style="position:fixed;inset:0;background:#000000cc;display:flex;align-items:center;justify-content:center;z-index:100;cursor:pointer;">
+      <div style="width:72%;aspect-ratio:16/9;background:repeating-linear-gradient(45deg,#0c1015,#0c1015 10px,#0e1319 10px,#0e1319 20px);border:1px solid #3a4550;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;box-shadow:0 24px 80px #000c;">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:2px;color:#8a96a3;">REAL EVE CLIENT WINDOW → FOREGROUND · ACTIVE INPUT</span>
+        <span style="font-size:26px;font-weight:600;color:#e8eef5;">{{ focusName }}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5c6875;">{{ focusShip }} · hotkey {{ focusKey }}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#48545f;margin-top:10px;">app calls SetForegroundWindow on the game process, just like EVE-O Preview — nothing renders in-app · click anywhere to dismiss</span>
+      </div>
+    </div>
+  </sc-if>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;characterCount&quot;: {&quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: 10, &quot;min&quot;: 1, &quot;max&quot;: 10, &quot;step&quot;: 1, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Layout&quot;}, &quot;showThumbnails&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Layout&quot;}, &quot;alertFlash&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Alerts&quot;}, &quot;voiceAlerts&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Alerts&quot;}}">
+class Component extends DCLogic {
+  state = { filter: 'ALL', order: null, dragIdx: null, focused: null };
+  onDragStart(i) { this.setState({ dragIdx: i }); }
+  onDropOn(i) {
+    const from = this.state.dragIdx;
+    if (from === null || from === i) return this.setState({ dragIdx: null });
+    const ord = this.currentOrder();
+    const moved = ord.splice(from, 1)[0];
+    ord.splice(i, 0, moved);
+    this.setState({ order: ord, dragIdx: null });
+  }
+  speak(text) {
+    if (!(this.props.voiceAlerts ?? true)) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05; u.pitch = 0.8;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  }
+  currentOrder() {
+    const n = this.props.characterCount ?? 10;
+    let ord = this.state.order ?? [...Array(10).keys()];
+    return ord.filter(i => i < n);
+  }
+  renderVals() {
+    const EW = { JAM: '#e864ff', DAMP: '#8f7bff', SCRAM: '#ff6b6b', WEB: '#4dabf7', TP: '#ffd43b', NEUT: '#b197fc' };
+    const mk = e => ({ type: e[0], src: e[1], color: e[0] === 'WEB' ? '#74c0fc' : EW[e[0]], bg: EW[e[0]] + '1a', anim: e[0] === 'WEB' ? 'webflash 0.9s ease-in-out infinite' : 'none' });
+    // deterministic frozen snapshot
+    const defs = [
+      ['Vex Auralon','Vindicator','DPS','F1', 612, 486, 0, 0, [['WEB','Loki "Kade Ohr"'],['SCRAM','Ares "Vint-1"']], [3,4,6,9,14,18,17,19,16,18,20,19,18,17,19,18], [0,0,2,5,9,12,13,14,14,15,15,16,15,15,16,15], 1240],
+      ['Kara Deshane','Nightmare','DPS','F2', 88, 0, 120, 0, [], [2,3,2,4,3,5,4,3,4,5,3,4,3,4,4,3], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 890],
+      ['Tarn Voss','Paladin','DPS','F3', 0, 0, 0, 0, [], [1,1,2,1,1,2,1,1,1,2,1,1,2,1,1,1], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 815],
+      ['Sable Ryn','Kronos','DPS','F4', 341, 520, 0, 84, [['NEUT','Curse "Maro Vex"']], [2,3,5,8,10,12,11,13,12,14,12,13,11,12,13,12], [0,0,2,5,9,13,14,15,15,16,15,16,15,15,16,16], 1105],
+      ['Odo Kettric','Golem','DPS','F5', 0, 0, 0, 0, [['DAMP','Keres "Sillan"']], [1,2,1,1,2,1,2,1,1,1,2,1,1,2,1,1], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 760],
+      ['Mira Talwyn','Vargur','DPS','F6', 57, 0, 0, 0, [], [2,2,3,2,4,3,2,3,2,3,3,2,3,2,2,3], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 940],
+      ['Juno Vael','Guardian','LOGI','F7', 194, 0, 310, 121, [['NEUT','Curse "Maro Vex"'],['TP','Huginn "Drel Kaas"']], [1,2,4,6,7,8,7,9,8,7,8,9,7,8,8,7], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 0],
+      ['Ashe Corvin','Nestor','LOGI','F8', 0, 0, 260, 0, [], [1,1,1,2,1,1,2,1,1,1,1,2,1,1,1,1], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 0],
+      ['Ilo Mehr','Claymore','CMD','F9', 23, 0, 0, 0, [], [1,2,1,2,1,2,2,1,2,1,1,2,1,2,1,1], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 85],
+      ['Ferro Lanz','Huginn','EWAR','F10', 448, 155, 0, 0, [['JAM','Falcon "Ost Renn"']], [2,4,7,11,13,15,14,16,15,17,15,16,14,15,16,15], [0,1,3,5,6,7,6,7,7,8,7,7,6,7,7,7], 0]
+    ];
+    const roleColor = { DPS: '#ffb454', LOGI: '#4cc38a', CMD: '#58a6ff', EWAR: '#e864ff' };
+    const logs = {
+      F1: [['18:42:05','Wrecks 612 from Machariel','#ff5c5c'],['18:42:03','Webbed by Loki','#ffa94d'],['18:42:01','Scrammed by Ares','#ff6b6b'],['18:41:58','Hits 486 rep from Guardian','#4cc38a']],
+      F2: [['18:42:04','Hits 88 from Kestrel','#c9a0a0'],['18:41:55','+120 cap from Basilisk','#58a6ff'],['18:41:40','No hostile contact','#48545f']],
+      F3: [['18:41:30','No hostile contact','#48545f'],['18:40:12','Undocked, joined fleet','#48545f']],
+      F4: [['18:42:06','Hits 341 from Cynabal','#ff5c5c'],['18:42:02','-84 GJ neut from Curse','#4dabf7'],['18:41:57','Hits 210 rep from Nestor','#4cc38a']],
+      F5: [['18:42:00','Damped by Keres','#8f7bff'],['18:41:48','Lock range down 62%','#8f7bff']],
+      F6: [['18:41:59','Glances 57 from Rifter','#c9a0a0'],['18:41:35','No hostile contact','#48545f']],
+      F7: [['18:42:07','-121 GJ neut from Curse','#4dabf7'],['18:42:05','Painted by Huginn','#ffd43b'],['18:42:03','Hits 194 from Machariel','#c9a0a0'],['18:41:59','+310 cap chain from Nestor','#58a6ff']],
+      F8: [['18:42:04','+260 cap chain from Guardian','#58a6ff'],['18:41:50','No hostile contact','#48545f']],
+      F9: [['18:41:52','Glances 23 from Kestrel','#c9a0a0'],['18:41:20','Links running','#48545f']],
+      F10: [['18:42:06','Jammed by Falcon — locks dropped','#e864ff'],['18:42:04','Hits 448 from Cynabal','#ff5c5c'],['18:41:55','Hits 155 rep from Guardian','#4cc38a']]
+    };
+    const chars = this.currentOrder().map((di, pos) => { const d = defs[di];
+      const ewar = d[8].map(mk);
+      const toPts = a => a.map((v, i) => (i * (100/15)).toFixed(1) + ',' + (21 - v).toFixed(1)).join(' ');
+      const pts = toPts(d[9]), ptsRep = toPts(d[10]);
+      return {
+        name: d[0], ship: d[1], role: d[2], key: d[3], roleColor: roleColor[d[2]],
+        in: d[4], inColor: d[4] > 300 ? '#ff5c5c' : (d[4] > 0 ? '#c9a0a0' : '#3a4550'),
+        tanking: d[4] > (d[5] || 0),
+        stable: d[4] > 0 && (d[5] || 0) >= d[4],
+        reps: d[5] || '—', capx: d[6] ? '+' + d[6] : '—',
+        neut: d[7] ? '-' + d[7] : '—', neutColor: d[7] ? '#4dabf7' : '#3a4550',
+        sparkIn: pts, sparkRep: ptsRep, ewar, clear: ewar.length === 0,
+        dpsOut: d[11] ? d[11].toLocaleString() : '—', dpsOutColor: d[11] ? '#ffb454' : '#3a4550',
+        log: logs[d[3]].map(l => ({ t: l[0], text: l[1], color: l[2] })),
+        border: ewar.length ? '#ff5c5c88' : '#232b35',
+        anim: ewar.length && (this.props.alertFlash ?? true) ? 'threatpulse 1.4s ease-in-out infinite' : 'none',
+        tankAnim: (this.props.alertFlash ?? true) ? (d[4] > (d[5] || 0) ? 'tankred 0.8s ease-in-out infinite' : (d[4] > 0 && (d[5] || 0) >= d[4] ? 'repgreen 1.6s ease-in-out infinite' : 'none')) : 'none',
+        focus: () => this.setState({ focused: { name: d[0], ship: d[1], key: d[3] } }),
+        dragStart: () => this.onDragStart(pos),
+        dropOn: (ev) => { ev.preventDefault(); this.onDropOn(pos); },
+        dragOver: (ev) => ev.preventDefault(),
+        opacity: this.state.dragIdx === pos ? 0.4 : 1
+      };
+    });
+    const chC = { CORP: '#4cc38a', ALLIANCE: '#d0a04a', LOCAL: '#8a96a3' };
+    const intelColor = '#ff5c5c';
+    const allMsgs = [
+      ['18:42:01','CALDARI-FW.INTEL','Sero-9','Hostile Falcon +2 in Tama, gate camp on Nourv.', 9],
+      ['18:41:44','CORP','Dela Wynn','Juno is getting neuted, watch the cap chain.', 1],
+      ['18:41:30','ALLIANCE','Kor Mandel','CTA forming at 20:00, dreads on standby.', 4],
+      ['18:41:12','TAMA.INTEL','Vantage','Kestrel gang 8 jumps out, moving your way.', 9],
+      ['18:40:58','CORP','Dela Wynn','SRP form is pinned in MOTD.', 1],
+      ['18:40:44','LOCAL','Rask Odain','o7', 10],
+      ['18:40:31','TAMA.INTEL','Sero-9','Huginn on d-scan near the Vale gate.', 9],
+      ['18:40:02','ALLIANCE','Kor Mandel','Standing fleet up, join Alliance Ops mumble.', 4],
+      ['18:39:47','CORP','Rask Odain','Anyone hauling to Jita tonight? Have 3 packages.', 1],
+      ['18:39:20','TAMA.INTEL','Vantage','Camp cleared, Nourv gate green.', 9],
+      ['18:38:55','LOCAL','Nym Sarto','GF in Tama, nice reps from the Guardian pair.', 10],
+      ['18:38:31','CALDARI-FW.INTEL','Sero-9','Cyno lit in Sujarento, watch for capital escalation.', 9],
+      ['18:38:04','CORP','Dela Wynn','Ammo restock in corp hangar 3, take what you need.', 1]
+    ].map(m => ({ t: m[0], ch: m[1], sender: m[2], text: m[3], seen: m[4], multi: m[4] > 1, chColor: chC[m[1]] ?? intelColor }));
+    const pinned = ['ALL','CORP','ALLIANCE','LOCAL'];
+    const rest = [...new Set(allMsgs.map(m => m.ch))].filter(c => !pinned.includes(c)).sort();
+    const filters = [...pinned, ...rest].map(f => ({
+      name: f, pick: () => this.setState({ filter: f }),
+      bc: this.state.filter === f ? '#3a4550' : '#232b35',
+      fg: this.state.filter === f ? '#e8eef5' : '#5c6875',
+      bg: this.state.filter === f ? '#1a212a' : 'transparent'
+    }));
+    const totEwar = chars.reduce((n, c) => n + c.ewar.length, 0);
+    const nCols = Math.min(5, Math.max(1, Math.ceil(chars.length / 2)));
+    const gridCols = 'repeat(' + nCols + ',1fr)';
+    const gridRows = chars.length > nCols ? '1fr 1fr' : '1fr';
+    return {
+      chars, filters, gridCols, gridRows, showThumbs: this.props.showThumbnails ?? true,
+      msgs: allMsgs.filter(m => this.state.filter === 'ALL' || m.ch === this.state.filter),
+      totIn: '1,763', totReps: '851', totNeut: '-205', totEwar, alertColor: totEwar ? '#ff5c5c' : '#4cc38a',
+      testVoice: () => this.speak('Web detected. Vex Auralon.'),
+      focused: this.state.focused, hasFocus: !!this.state.focused,
+      focusName: this.state.focused?.name, focusShip: this.state.focused?.ship, focusKey: this.state.focused?.key,
+      closeFocus: () => this.setState({ focused: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

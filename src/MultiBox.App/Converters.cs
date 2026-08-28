@@ -1,28 +1,8 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
-using System.Windows.Media;
 
 namespace MultiBox.App;
-
-/// <summary>Paints a lamp: red when an effect is active, green for the client-running dot.</summary>
-public sealed class BoolToBrushConverter : IValueConverter
-{
-    public Brush ActiveBrush { get; set; } = Brushes.Red;
-    public Brush InactiveBrush { get; set; } = Brushes.Gray;
-    public Brush GoodBrush { get; set; } = new SolidColorBrush(Color.FromRgb(0x57, 0xD9, 0x8A));
-
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        var active = value is true;
-        if (parameter as string == "good")
-            return active ? GoodBrush : InactiveBrush;
-        return active ? ActiveBrush : InactiveBrush;
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
-        throw new NotSupportedException();
-}
 
 public sealed class BoolToVisibilityConverter : IValueConverter
 {
@@ -34,19 +14,16 @@ public sealed class BoolToVisibilityConverter : IValueConverter
 }
 
 /// <summary>
-/// Formats a per-second rate. Idle shows a dash rather than "0.0" so a glance separates
-/// "nothing happening" from a real low number.
+/// Height from width at 16:9 — the EVE client's own ratio, so the live thumbnail fills the
+/// slot without letterboxing. WPF has no aspect-ratio primitive, so the slot binds its
+/// Height to its own ActualWidth through this.
 /// </summary>
-public sealed class RateConverter : IValueConverter
+public sealed class AspectRatioConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        if (value is not double rate)
-            return "-";
-        if (rate < 0.05)
-            return "-";
-        return rate >= 1000 ? $"{rate / 1000:F1}k" : rate.ToString("F0", culture);
-    }
+    public double Ratio { get; set; } = 9.0 / 16.0;
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is double width && width > 0 ? width * Ratio : 0d;
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         throw new NotSupportedException();

@@ -76,13 +76,44 @@ This is the entire list. All of it concerns *windows on the desktop*, never the 
 | `DwmUpdateThumbnailProperties` | where and how large the preview is drawn | no — affects our own panel only |
 | `DwmUnregisterThumbnail` | stop drawing a preview | no |
 | `DwmQueryThumbnailSourceSize` | aspect ratio of the previewed window | no — a size, not image content |
+| `SetForegroundWindow` | raise one client to the front | **yes, in one narrow way** — see below |
+| `ShowWindow` | restore that client if it was minimised | yes, restore only |
+| `IsIconic` | is that client minimised | no — read-only |
+| `RegisterHotKey` | reserve a key combination for the switcher | no — reserves a key, reads nothing |
+| `UnregisterHotKey` | release it again | no |
 
-**Ten functions.** The six window calls are read-only queries. The four DWM calls run in the
+**Twelve functions.** Six are read-only window queries. Four are DWM calls that run in the
 opposite direction — they tell the compositor where to draw and return nothing about the
-source — so neither group can observe or alter the game. This remains a subset of what
-eve-o-preview — a widely used and long-tolerated tool — requires: eve-o-preview draws its
-previews with the same thumbnail API, and additionally moves windows and switches client
-focus, which MultiBox does not.
+source. Two more, plus the hotkey pair, exist to raise a client.
+
+This is still a subset of what eve-o-preview — a widely used and long-tolerated tool —
+requires: eve-o-preview draws its previews with the same thumbnail API and switches focus the
+same way, and additionally *moves and resizes* client windows, which MultiBox does not.
+
+### Bringing a client to the front
+
+Clicking a thumbnail, or pressing a Fast Screen Switcher hotkey, calls `SetForegroundWindow`
+on one EVE client — restoring it first with `ShowWindow` if it was minimised. This is the only
+capability in the application that acts on a game window rather than observing one, and it was
+added deliberately rather than by accident: it is exactly eve-o-preview's thumbnail-click
+behaviour, and it is what makes a preview grid useful rather than decorative.
+
+What it is **not** is automation. It moves *focus*, and nothing else:
+
+- It acts on a single window, the one you just clicked or cycled to. There is no call that
+  could address several clients, so **input broadcasting cannot be expressed here**.
+- It sends no keystrokes or clicks. After the switch, your keyboard reaches the game because
+  the game is the focused window — the same as alt-tabbing to it.
+- It runs only in response to your input. Nothing raises a client on a timer or in reaction to
+  a log line.
+
+`SetWindowsHookEx` remains prohibited. The switcher uses `RegisterHotKey`, which asks Windows
+to reserve specific combinations and report only those; a hook would see every keystroke on
+the machine, including the ones you type into the game. That distinction is the reason one is
+allowed and the other is not.
+
+Prohibited-list changes are enforced: `EulaComplianceTests` holds the allow-list above, and any
+native call outside it fails the build.
 
 ### Hardening applied during this review
 

@@ -1,8 +1,11 @@
 # MultiBox
 
 A single dashboard for multiboxing EVE Online: per-character DPS, remote reps and incoming
-electronic warfare with distinct audio alerts, live previews of every client, and one
-deduplicated read-only chat window instead of the same message repeated once per client.
+electronic warfare with distinct audio alerts, live previews of every client, hotkey cycling
+between clients, and one deduplicated read-only chat window instead of the same message
+repeated once per client.
+
+![The Fleet Command dashboard](docs/images/dashboard.png)
 
 Built to replace a screen full of separate windows — one PyEveLiveDPS instance per
 character, plus four copies of every chat channel — with one place to look.
@@ -36,13 +39,18 @@ memory, no screen capture, no injected input, no automation of the game. This is
 prohibited API is ever introduced. The Windows API calls it makes are six read-only window
 queries (`EnumWindows`, `IsWindowVisible`, `GetWindowTextLength`, `GetWindowText`,
 `GetWindowRect`, `GetForegroundWindow`), used to learn which character is in which window,
-plus the four DWM thumbnail calls that draw the client previews. It has no ability to move,
-focus or send anything to a game window.
+plus the four DWM thumbnail calls that draw the client previews, and three that raise a single
+client you clicked or cycled to. It cannot move, resize or send anything to a game window.
 
 The previews are **not** screen capture. `DwmRegisterThumbnail` asks the Windows compositor
 to draw a live view of a window into one of ours, the same way eve-o-preview, Alt-Tab and the
 taskbar hover previews do. No pixel data ever reaches this application, so it cannot read
 what it is showing you. Displaying is not reading.
+
+Bringing a client to the front — by clicking its thumbnail, or with a Fast Screen Switcher
+hotkey — is the one thing here that acts on a game window rather than observing one. It does
+what eve-o-preview has always done. Every input-synthesis API stays banned and enforced in CI,
+so **input broadcasting is impossible**: one keypress can never reach several clients.
 
 ESI is a **verification step, not a dependency**: character ids come free in log filenames
 and names come free in log banners, so ESI only confirms the two agree.

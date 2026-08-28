@@ -30,6 +30,16 @@ public sealed class GamelogParser
         @"^(?<amount>\d+)\s+remote (?<layer>armor|shield|hull) repaired\s+(?<dir>to|by)\s+(?<entity>.+?)(?:\s+-\s+(?<module>.+))?$",
         RegexOptions.Compiled);
 
+    // "240 GJ energy transfered to Basilisk // Ashe Corvin VI.TA / - Large Remote Capacitor Transmitter"
+    // NOTE: unlike every other pattern in this file, this one is NOT derived from a captured
+    // log. No sample in samples/Gamelogs contains a capacitor transfer, because nobody in the
+    // recorded session flew a transmitter. The wording, including the client's one-r spelling
+    // of "transfered", comes from EVE log documentation; both spellings are accepted here.
+    // Treat CAP XFER as unverified until a real log confirms it.
+    private static readonly Regex CapTransfer = new(
+        @"^(?<amount>\d+)\s+GJ energy transfer{1,2}ed\s+(?<dir>to|by)\s+(?<entity>.+?)(?:\s+-\s+(?<module>.+))?$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     // "66 GJ energy neutralized Starving Damavik - Starving Damavik"
     private static readonly Regex Neut = new(
         @"^(?<amount>\d+)\s+GJ energy neutralized\s+(?<by>by\s+)?(?<entity>.+?)(?:\s+-\s+(?<module>.+))?$",
@@ -141,6 +151,23 @@ public sealed class GamelogParser
             // "repaired by X" = X repaired us; "repaired to X" = we repaired X.
             var incoming = m.Groups["dir"].Value.Equals("by", StringComparison.OrdinalIgnoreCase);
             return Base(CombatEventKind.RemoteRepair, incoming ? Direction.Incoming : Direction.Outgoing) with
+            {
+                Amount = int.Parse(m.Groups["amount"].Value),
+                Counterparty = entity,
+                Victim = incoming ? _listener : entity.Name,
+                VictimShip = incoming ? null : entity.Ship,
+                Module = Trim(m.Groups["module"].Value)
+            };
+        }
+
+        // Must precede Neut and Damage, either of which would otherwise swallow the line.
+        m = CapTransfer.Match(body);
+        if (m.Success)
+        {
+            var entity = EveEntity.Parse(m.Groups["entity"].Value).ResolveSelf(_listener);
+            // "transfered by X" = X fed us cap; "transfered to X" = we fed X.
+            var incoming = m.Groups["dir"].Value.Equals("by", StringComparison.OrdinalIgnoreCase);
+            return Base(CombatEventKind.CapacitorTransfer, incoming ? Direction.Incoming : Direction.Outgoing) with
             {
                 Amount = int.Parse(m.Groups["amount"].Value),
                 Counterparty = entity,
