@@ -73,7 +73,7 @@ that would settle it, is in EWAR-DETECTION.md](docs/EWAR-DETECTION.md).
 ## Requirements
 
 - Windows 10 or 11
-- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) — or use the
+- [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) — or use the
   self-contained build, which bundles it
 - EVE logging enabled (on by default)
 
@@ -206,9 +206,9 @@ not parse. A further 23 tests enforce the EULA boundary — see
 ## Layout
 
 ```
-src/MultiBox.Core/     parsing, tailing, dedup, stats, config, ESI   (net8.0, portable)
-src/MultiBox.App/      WPF dashboard, alerts, window interop         (net8.0-windows)
-src/MultiBox.Replay/   console diagnostics                           (net8.0, portable)
+src/MultiBox.Core/     parsing, tailing, dedup, stats, config, ESI   (net10.0, portable)
+src/MultiBox.App/      WPF dashboard, alerts, window interop         (net10.0-windows)
+src/MultiBox.Replay/   console diagnostics                           (net10.0, portable)
 tests/                 xunit suite
 samples/               real logs captured from the clients
 docs/                  reference documentation

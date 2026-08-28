@@ -2,12 +2,12 @@
 
 ## Prerequisites
 
-- .NET 8 SDK
+- .NET 10 SDK
 - Windows only for *running* the GUI; everything else works on any platform
 
 ### Installing the SDK
 
-On Windows: download the .NET 8 SDK installer.
+On Windows: download the .NET 10 SDK installer.
 
 On macOS, note that `brew install --cask dotnet-sdk` **fails** in a non-interactive shell
 because the pkg installer requires `sudo` with a TTY. Use Microsoft's script instead, which
@@ -29,14 +29,14 @@ dotnet build MultiBox.sln -p:EnableWindowsTargeting=true
 dotnet test
 ```
 
-`EnableWindowsTargeting=true` is only needed off-Windows; it lets the `net8.0-windows` WPF
+`EnableWindowsTargeting=true` is only needed off-Windows; it lets the `net10.0-windows` WPF
 project restore and compile on a machine that is not Windows. The resulting binary still
 only *runs* on Windows.
 
 ### Publishing
 
 ```powershell
-.\build.ps1 -Test                # framework-dependent (needs .NET 8 Desktop Runtime)
+.\build.ps1 -Test                # framework-dependent (needs .NET 10 Desktop Runtime)
 .\build.ps1 -SelfContained       # standalone, ~145 MB, no runtime install needed
 ```
 

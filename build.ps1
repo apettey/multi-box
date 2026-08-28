@@ -3,7 +3,7 @@
     Builds MultiBox for Windows.
 
 .EXAMPLE
-    .\build.ps1                 # framework-dependent build (needs .NET 8 Desktop Runtime)
+    .\build.ps1                 # framework-dependent build (needs .NET 10 Desktop Runtime)
     .\build.ps1 -SelfContained  # standalone build, no runtime install needed (~145 MB)
     .\build.ps1 -Test           # run the test suite first
 #>

@@ -14,8 +14,8 @@ checked against them.
    up to four log files. Deduplication is not a feature bolted on the side; it is the
    central abstraction.
 
-Rule 2 produced the project split: `MultiBox.Core` targets `net8.0` and is fully portable;
-only `MultiBox.App` targets `net8.0-windows`. Consequently the full test suite runs on
+Rule 2 produced the project split: `MultiBox.Core` targets `net10.0` and is fully portable;
+only `MultiBox.App` targets `net10.0-windows`. Consequently the full test suite runs on
 macOS or Linux against real captured logs, and the Windows build can even be *published*
 from a Mac via `-p:EnableWindowsTargeting=true`.
 
@@ -25,10 +25,10 @@ from a Mac via `-p:EnableWindowsTargeting=true`.
 
 | Project | Target | Role |
 |---|---|---|
-| `src/MultiBox.Core` | `net8.0` | discovery, tailing, parsing, dedup, stats, config, ESI |
-| `src/MultiBox.App` | `net8.0-windows` | WPF dashboard, audio alerts, window interop |
-| `src/MultiBox.Replay` | `net8.0` | console diagnostics (`doctor`, `replay`, `chat`) |
-| `tests/MultiBox.Core.Tests` | `net8.0` | 39 xunit tests, mostly against real logs |
+| `src/MultiBox.Core` | `net10.0` | discovery, tailing, parsing, dedup, stats, config, ESI |
+| `src/MultiBox.App` | `net10.0-windows` | WPF dashboard, audio alerts, window interop |
+| `src/MultiBox.Replay` | `net10.0` | console diagnostics (`doctor`, `replay`, `chat`) |
+| `tests/MultiBox.Core.Tests` | `net10.0` | 39 xunit tests, mostly against real logs |
 
 `MultiBox.Core` has **no third-party dependencies** — `System.Text.Json` and
 `System.Net.Http` only.
