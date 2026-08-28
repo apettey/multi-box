@@ -7,8 +7,8 @@ instead of the same message repeated once per client.
 Built to replace a screen full of separate windows — one PyEveLiveDPS instance per
 character, plus four copies of every chat channel — with one place to look.
 
-> **Status:** core is built and verified against real logs (39 tests, 99.97% line coverage,
-> Windows binaries publish clean). The WPF window itself has not yet been rendered on
+> **Status:** core is built and verified against real logs (62 tests, 99.97% line coverage,
+> Windows binaries publish clean, EULA compliance audited and enforced in CI). The WPF window itself has not yet been rendered on
 > Windows, and the on-screen layout is expected to change once it runs. See
 > [known gaps](docs/ARCHITECTURE.md#known-gaps).
 
@@ -33,9 +33,10 @@ lines represented **19 actual scrambles**.
 **Only two data sources: log files on disk, and the public ESI API.** No reading EVE client
 memory, no screen capture, no injected input, no automation of the game. This is audited in
 [EULA-COMPLIANCE.md](docs/EULA-COMPLIANCE.md) and enforced by tests that fail the build if a
-prohibited API is ever introduced. The Windows API calls it makes are
-read-only window queries (`EnumWindows`, `GetWindowText`, `GetWindowRect`) used to match a
-character to a window and to position panels.
+prohibited API is ever introduced. The only Windows API calls it makes are six read-only
+window queries (`EnumWindows`, `IsWindowVisible`, `GetWindowTextLength`, `GetWindowText`,
+`GetWindowRect`, `GetForegroundWindow`), used to learn which character is in which window.
+It has no ability to move, focus or send anything to a game window.
 
 ESI is a **verification step, not a dependency**: character ids come free in log filenames
 and names come free in log banners, so ESI only confirms the two agree.
@@ -180,11 +181,12 @@ Full key reference: [CONFIGURATION.md](docs/CONFIGURATION.md).
 dotnet test
 ```
 
-39 tests, ~300 ms. Most run against the **real logs in `samples/`** — including the
+62 tests, ~320 ms. Most run against the **real logs in `samples/`** — including the
 deliberate ECM/scramble/web session — rather than invented fixtures, because a parser that
 only works on made-up data cannot pass. The corpus test asserts that over 99% of real combat
 lines parse; it currently sits at **99.97%** (14,383 of 14,388) and prints whatever it could
-not parse.
+not parse. A further 23 tests enforce the EULA boundary — see
+[EULA-COMPLIANCE.md](docs/EULA-COMPLIANCE.md).
 
 ---
 
