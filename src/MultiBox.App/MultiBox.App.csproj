@@ -9,6 +9,11 @@
     <AssemblyName>MultiBox</AssemblyName>
     <RootNamespace>MultiBox.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WPF's native libraries (PresentationNative_cor3, wpfgfx_cor3) cannot be loaded
+         from inside a single-file bundle, so they must be extracted to disk. Without this
+         a single-file publish dies with DllNotFoundException in SetWindowLongPtrWndProc
+         before the window ever shows. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <!-- Lets the project restore and build on a non-Windows machine (CI, or a Mac).
          The produced binary still only runs on Windows. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
