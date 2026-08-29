@@ -16,6 +16,7 @@ public sealed class CharacterMonitor
         RepsIn = new RollingWindow(w);
         NeutIn = new RollingWindow(w);
         CapTransferIn = new RollingWindow(w);
+        Threats = new ThreatTracker(w);
         Ewar = new EwarStateTracker(ewarHold);
     }
 
@@ -31,6 +32,12 @@ public sealed class CharacterMonitor
 
     /// <summary>Remote capacitor received. Unverified against captured logs - see GamelogParser.</summary>
     public RollingWindow CapTransferIn { get; }
+
+    /// <summary>
+    /// Incoming damage split by who is dealing it. The headline figure says how much is
+    /// landing; this says what to shoot, burn away from, or ask for reps against.
+    /// </summary>
+    public ThreatTracker Threats { get; }
 
     public EwarStateTracker Ewar { get; }
 
@@ -120,6 +127,7 @@ public sealed class CharacterMonitor
                 else if (aboutMe)
                 {
                     DamageIn.Add(e.Timestamp, e.Amount);
+                    Threats.Add(e.Timestamp, e.Counterparty, e.Amount);
                 }
                 break;
 

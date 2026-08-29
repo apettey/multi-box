@@ -51,6 +51,12 @@ screenshots current.
   client to the top in one action.
 - **A CLEAR button on the unified comms panel.** Empties the view only — the session keeps its
   history and nothing on disk is touched.
+- **TOP THREAT on every card: what is hitting that character hardest.** Incoming damage is now
+  split by who is dealing it, over the same rolling window as the headline figure, and the
+  worst offender is named on the card with its share of the damage. Players are identified by
+  hull and pilot (`Ares "Vint-1"`), NPCs by their own name. Hovering lists the top three, so a
+  single battleship is never mistaken for a swarm of frigates — the total reads the same for
+  both, and they call for opposite decisions.
 - `AGENTS.md` and this changelog.
 
 ### Changed
@@ -124,6 +130,10 @@ screenshots current.
   capacitor transfer, because nobody in the recorded session flew a transmitter. The pattern
   is written from EVE's log format documentation and accepts both of the client's spellings;
   every other pattern in the parser is derived from a real log.
+- **TOP THREAT only counts damage the log attributes.** Every damage line names its source, so
+  in practice this is all of it; damage that arrived unattributed would still be in the
+  headline figure but is deliberately not blamed on an invented "unknown" attacker, which
+  would otherwise top the list.
 - Webs, target painters, sensor dampeners and tracking disruptors are still undetectable:
   EVE writes no game-log line when they are applied. The web *alert* fires only for a web the
   log actually reports.

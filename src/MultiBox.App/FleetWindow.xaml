@@ -144,6 +144,7 @@
                         <RowDefinition Height="3*"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="2*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
@@ -272,8 +273,33 @@
                         </StackPanel>
                     </Grid>
 
+                    <!-- Hardest hitter. A total tells you 600 dps is landing; this tells you
+                         whether that is one battleship or twelve frigates, which are opposite
+                         problems. -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="10,2,10,0"
+                                ToolTip="{Binding ThreatTooltip}"
+                                Visibility="{Binding HasThreat, Converter={StaticResource Show}}">
+                        <TextBlock Text="TOP THREAT" Style="{StaticResource Caption}"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TopThreat}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                   FontFamily="{StaticResource Mono}" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{x:Static local:Palette.Danger}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding TopThreatPilot}" Margin="6,0,0,0"
+                                   VerticalAlignment="Center" FontFamily="{StaticResource Mono}"
+                                   FontSize="10" Foreground="{x:Static local:Palette.TextSecondary}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding TopThreatDps}" Margin="8,0,0,0"
+                                   VerticalAlignment="Center" FontFamily="{StaticResource Mono}"
+                                   FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{x:Static local:Palette.Danger}"/>
+                        <TextBlock Text="dps" Margin="3,0,0,0" VerticalAlignment="Center"
+                                   FontFamily="{StaticResource Mono}" FontSize="9"
+                                   Foreground="{x:Static local:Palette.TextMuted}"/>
+                    </StackPanel>
+
                     <!-- stats row -->
-                    <UniformGrid Grid.Row="3" Columns="4" Margin="10,6,10,4">
+                    <UniformGrid Grid.Row="4" Columns="4" Margin="10,6,10,4">
                         <StackPanel>
                             <TextBlock Text="DPS OUT" Style="{StaticResource Caption}"/>
                             <TextBlock Text="{Binding DpsOutText}" Style="{StaticResource StatValue}"
@@ -298,7 +324,7 @@
 
                     <!-- EWAR badges sit at the bottom, so a card's threat state is always in
                          the same place regardless of how long its log is. -->
-                    <Border Grid.Row="5" Margin="10,0,10,10" MinHeight="24">
+                    <Border Grid.Row="6" Margin="10,0,10,10" MinHeight="24">
                         <Grid>
                             <ItemsControl ItemsSource="{Binding Ewar}" ItemTemplate="{StaticResource EwarBadge}"
                                           VerticalAlignment="Bottom">
@@ -314,7 +340,7 @@
                     </Border>
 
                     <!-- per-character combat log takes the rest -->
-                    <Border Grid.Row="4" Margin="10,6,10,0" Padding="0,6,0,0" BorderThickness="0,1,0,0"
+                    <Border Grid.Row="5" Margin="10,6,10,0" Padding="0,6,0,0" BorderThickness="0,1,0,0"
                             BorderBrush="{x:Static local:Palette.LogSeparator}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <ItemsControl ItemsSource="{Binding Log}" ItemTemplate="{StaticResource LogRow}"/>

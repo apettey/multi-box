@@ -70,6 +70,8 @@ Each card is one pilot, top to bottom:
   received, both on the same scale so you can see whether the green is keeping up.
   - `▲ EXCEEDS REPS` in red — damage is outrunning your logi. The block pulses red.
   - `● REPS HOLDING` in green — you are being shot but the reps are keeping pace.
+- **TOP THREAT** — what is hitting this character hardest right now, with its share of the
+  incoming damage. See below.
 - **Four numbers**: DPS OUT, REPS IN, CAP XFER, NEUT/NOS. A dash means nothing is happening,
   which is deliberately distinct from a zero reading.
 - **Combat log** for that pilot, colour-coded: bright red for heavy hits, muted red for chip
@@ -78,6 +80,30 @@ Each card is one pilot, top to bottom:
   flashes rather than merely sitting there. `NO EWAR` when you are clear.
 
 When any effect lands, the whole card border pulses red.
+
+### Top threat
+
+`INCOMING DPS` tells you 600 damage a second is landing. It does not tell you whether that is
+one battleship you could burn away from, or twelve frigates you cannot — and those call for
+opposite decisions.
+
+`TOP THREAT` names the single hardest hitter and how much of the incoming it accounts for:
+
+```
+TOP THREAT   Blinding Leshak            272 dps
+TOP THREAT   Ares          "Vint-1"     180 dps
+```
+
+Players are identified by **hull and pilot** — the hull because that is what you can pick out
+on grid, the pilot because that is who you report. NPCs show their own name, which is all the
+log gives.
+
+**Hover it for the top three.** One name can hide a swarm; the list shows whether the damage
+is concentrated or spread.
+
+It is measured over the same rolling window as `INCOMING DPS`, so the parts always add up to
+roughly the whole rather than to a fight-long total, and it clears when the shooting stops.
+Two pilots in identical hulls stay separate entries.
 
 ### Ordering a large fleet
 
@@ -182,6 +208,11 @@ that one pattern is written from EVE's documented log format rather than from a 
 Every other figure on the dashboard is derived from patterns tested against real logs.
 
 **Your ship shows only once someone else sees you.** Your own log calls you "you".
+
+**TOP THREAT only blames damage the log attributes.** EVE names the source on every damage
+line, so in practice this is all of it. Anything unattributed still counts in `INCOMING DPS`
+but is not credited to an invented "unknown" attacker, which would otherwise sit at the top of
+the list.
 
 ---
 

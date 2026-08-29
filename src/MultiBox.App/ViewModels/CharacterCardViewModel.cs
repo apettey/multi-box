@@ -73,6 +73,55 @@ public sealed class CharacterCardViewModel : ObservableObject
     private PointCollection _sparkReps = new();
     public PointCollection SparkReps { get => _sparkReps; private set => Set(ref _sparkReps, value); }
 
+    // --- top threat ---------------------------------------------------------------------
+
+    private string? _topThreat;
+
+    /// <summary>Hardest hitter right now: the ship for a player, the NPC name otherwise.</summary>
+    public string? TopThreat
+    {
+        get => _topThreat;
+        private set { if (Set(ref _topThreat, value)) Raise(nameof(HasThreat)); }
+    }
+
+    private string _topThreatDps = Dash;
+    public string TopThreatDps { get => _topThreatDps; private set => Set(ref _topThreatDps, value); }
+
+    private string _topThreatPilot = string.Empty;
+
+    /// <summary>Pilot behind the hull, shown beside it. Empty for an NPC.</summary>
+    public string TopThreatPilot { get => _topThreatPilot; private set => Set(ref _topThreatPilot, value); }
+
+    private string _threatTooltip = string.Empty;
+
+    /// <summary>The next few attackers down, so one number does not hide a swarm.</summary>
+    public string ThreatTooltip { get => _threatTooltip; private set => Set(ref _threatTooltip, value); }
+
+    public bool HasThreat => _topThreat is not null;
+
+    private void RefreshThreats(DateTime now)
+    {
+        var top = _monitor.Threats.Top(now, 3);
+        if (top.Count == 0)
+        {
+            TopThreat = null;
+            TopThreatPilot = string.Empty;
+            TopThreatDps = Dash;
+            ThreatTooltip = "Nothing is hitting this character.";
+            return;
+        }
+
+        var first = top[0];
+        TopThreat = first.Label;
+        TopThreatPilot = first.Pilot ?? string.Empty;
+        TopThreatDps = ((int)Math.Round(first.Dps)).ToString("N0");
+
+        ThreatTooltip = top.Count == 1
+            ? $"{first.Describe()} — {first.Dps:F0} dps"
+            : "Hitting hardest right now:\n" +
+              string.Join("\n", top.Select((t, i) => $"  {i + 1}. {t.Describe()} — {t.Dps:F0} dps"));
+    }
+
     // --- stats row ----------------------------------------------------------------------
 
     private int _dpsOut;
@@ -165,6 +214,7 @@ public sealed class CharacterCardViewModel : ObservableObject
         Stable = DpsIn > 0 && RepsIn >= DpsIn;
 
         RefreshSparklines();
+        RefreshThreats(now);
         RefreshEwar(now);
         RefreshLog();
     }
