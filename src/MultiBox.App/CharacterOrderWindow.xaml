@@ -1,0 +1,117 @@
+<Window x:Class="MultiBox.App.CharacterOrderWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:MultiBox.App"
+        Title="Character Order — Fleet Command"
+        Width="660" Height="720"
+        WindowStartupLocation="CenterOwner"
+        Background="{x:Static local:Palette.Panel}"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <FontFamily x:Key="Sans">IBM Plex Sans, Segoe UI</FontFamily>
+        <FontFamily x:Key="Mono">IBM Plex Mono, Consolas</FontFamily>
+
+        <Style x:Key="Action" TargetType="Border">
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{x:Static local:Palette.CardBorder}"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <TextBlock Text="CHARACTER ORDER" FontFamily="{StaticResource Mono}" FontSize="14"
+                       FontWeight="SemiBold" Foreground="{x:Static local:Palette.TextPrimary}"/>
+            <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" FontFamily="{StaticResource Sans}"
+                       FontSize="12" Foreground="{x:Static local:Palette.TextSecondary}"
+                       Text="Squads are consecutive slices of this one list, so moving a character past a squad boundary is how you move them between squads. The squad column shows where each will land."/>
+            <TextBlock Text="{Binding Summary}" Margin="0,8,0,0" FontFamily="{StaticResource Mono}"
+                       FontSize="10" Foreground="{x:Static local:Palette.TextMuted}"/>
+        </StackPanel>
+
+        <Border DockPanel.Dock="Top" Margin="0,0,0,10" Padding="12,8" CornerRadius="4"
+                Background="{x:Static local:Palette.Page}" BorderThickness="1"
+                BorderBrush="{x:Static local:Palette.CardBorder}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="CARDS PER SQUAD" VerticalAlignment="Center"
+                           FontFamily="{StaticResource Mono}" FontSize="9"
+                           Foreground="{x:Static local:Palette.TextMuted}"/>
+                <Slider Width="220" Margin="10,0,0,0" VerticalAlignment="Center"
+                        Minimum="1" Maximum="20" TickFrequency="1" IsSnapToTickEnabled="True"
+                        Value="{Binding SquadSize, Mode=TwoWay}"/>
+                <TextBlock Text="{Binding SquadSize}" Margin="10,0,0,0" VerticalAlignment="Center"
+                           MinWidth="24" FontFamily="{StaticResource Mono}" FontSize="13"
+                           FontWeight="SemiBold" Foreground="{x:Static local:Palette.NeutBlue}"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <Border Style="{StaticResource Action}" MouseLeftButtonUp="MoveUp_Click">
+                        <TextBlock Text="▲ MOVE UP" FontFamily="{StaticResource Mono}" FontSize="10"
+                                   Foreground="{x:Static local:Palette.TextSecondary}"/>
+                    </Border>
+                    <Border Style="{StaticResource Action}" MouseLeftButtonUp="MoveDown_Click">
+                        <TextBlock Text="▼ MOVE DOWN" FontFamily="{StaticResource Mono}" FontSize="10"
+                                   Foreground="{x:Static local:Palette.TextSecondary}"/>
+                    </Border>
+                    <Border Style="{StaticResource Action}" MouseLeftButtonUp="RunningFirst_Click"
+                            ToolTip="Move every character with an open client to the top, keeping their order">
+                        <TextBlock Text="OPEN CLIENTS FIRST" FontFamily="{StaticResource Mono}" FontSize="10"
+                                   Foreground="{x:Static local:Palette.TextSecondary}"/>
+                    </Border>
+                </StackPanel>
+
+                <Border CornerRadius="3" Padding="20,5" Cursor="Hand" HorizontalAlignment="Right"
+                        Background="{x:Static local:Palette.Inset}" BorderThickness="1"
+                        BorderBrush="{x:Static local:Palette.NeutBlue}" MouseLeftButtonUp="Close_Click">
+                    <TextBlock Text="DONE" FontFamily="{StaticResource Mono}" FontSize="10"
+                               Foreground="{x:Static local:Palette.NeutBlue}"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <ListBox x:Name="OrderList" ItemsSource="{Binding Rows}"
+                 SelectedItem="{Binding Selected, Mode=TwoWay}"
+                 Background="{x:Static local:Palette.Page}" BorderThickness="1"
+                 BorderBrush="{x:Static local:Palette.CardBorder}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Padding" Value="4"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="36"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="90"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{Binding Position}"
+                                   FontFamily="{StaticResource Mono}" FontSize="11"
+                                   Foreground="{x:Static local:Palette.TextFaint}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontFamily="{StaticResource Sans}"
+                                   FontSize="13" Foreground="{Binding NameBrush}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Column="2" Text="{Binding StateText}"
+                                   FontFamily="{StaticResource Mono}" FontSize="10"
+                                   Foreground="{Binding StateBrush}"/>
+                        <TextBlock Grid.Column="3" Text="{Binding SquadText}"
+                                   FontFamily="{StaticResource Mono}" FontSize="10"
+                                   Foreground="{Binding SquadBrush}"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</Window>

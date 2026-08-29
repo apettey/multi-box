@@ -40,9 +40,21 @@ Left to right: the fleet totals, then your controls.
 | **NEUT PRESSURE** | capacitor being drained off the fleet |
 | **EWAR ALERTS** | how many effects are on the fleet right now — green at zero, red otherwise |
 
-`SQUAD 1 · 4` switches tabs when you run more than ten characters. The checkboxes toggle
-thumbnails, flashing alerts, spoken warnings and the alert tones. `⇄ CYCLE GROUPS` opens the
-Fast Screen Switcher, and `🔊 VOICE` plays a test announcement. The clock is EVE time.
+`SQUAD 1 · 4` switches tabs. `CARDS` sets how many cards a squad holds, from 1 to 20 — squads
+are consecutive slices of the character order, so lowering it pushes the overflow onto the
+next tab. `≡ ORDER` opens the ordering window. The checkboxes toggle showing only open
+clients, thumbnails, flashing alerts, spoken warnings and the alert tones. `⇄ CYCLE GROUPS`
+opens the Fast Screen Switcher, and `🔊 VOICE` plays a test announcement. The clock is EVE
+time.
+
+### Which characters get a card
+
+**Only characters whose client is currently open.** EVE's log files outlive the client that
+wrote them, so a card per log file would mean every alt that undocked today keeping a slot for
+the rest of the evening. The status line says how many known characters are closed — "Watching
+14 character(s). 10 closed" means four cards and ten pilots it knows about but is not showing.
+
+Untick **Open only** to show every character it has ever seen a log for this session.
 
 ### A character card
 
@@ -67,9 +79,28 @@ Each card is one pilot, top to bottom:
 
 When any effect lands, the whole card border pulses red.
 
+### Ordering a large fleet
+
+![The character ordering window](images/character-order.png)
+
+Dragging cards works well for a handful. For twenty, use `≡ ORDER`.
+
+The list is the whole fleet in one order, and squads are consecutive slices of it — so moving
+a character past a squad boundary is how you move them between squads. Each row shows whether
+that client is open and which squad it will land in, since that is the consequence of a move
+you would not otherwise see. `OPEN CLIENTS FIRST` sorts every running client to the top while
+keeping their relative order.
+
+The slider here is the same one as in the header, repeated because the squad boundaries are
+what you are arranging against.
+
 ### Unified comms
 
 One read-only feed of every channel across every client, newest first.
+
+`CLEAR` empties the panel when the backlog stops being relevant. It clears the **view only** —
+the session keeps its history, and nothing on disk is touched. Messages arriving afterwards
+appear as normal.
 
 Four clients in the same fleet channel write the same message four times. The panel collapses
 those into one row and marks it `×4`. A `×1` on a fleet message is information too — it means
@@ -130,7 +161,9 @@ it is managed from the UI; these are worth editing by hand:
 | `EwarHoldSeconds` | How long an effect stays lit without a refreshing log line. Default 12. |
 | `ChatChannels` | Channels to follow. Empty means all of them. |
 | `Alerts` | Tone, frequency, duration and cooldown per EWAR type. |
-| `SquadSize` | Cards per squad tab. Default 10. |
+| `SquadSize` | Cards per squad tab. Default 10, and set by the header slider. |
+| `ShowOnlyRunningClients` | Show a card only while the client is open. Default true. |
+| `CharacterOrder` | Fleet order by name, set by dragging cards or the ordering window. |
 | `ClickToFocus` | Set false to make thumbnails inert. |
 
 ---

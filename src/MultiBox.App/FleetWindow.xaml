@@ -431,8 +431,12 @@
                                Foreground="{x:Static local:Palette.TextMuted}" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding Status}" Margin="16,0,0,0" FontFamily="{StaticResource Mono}"
                                FontSize="11" Foreground="{x:Static local:Palette.TextFaint}"
-                               VerticalAlignment="Center" MaxWidth="520"
+                               VerticalAlignment="Center" MaxWidth="420"
                                TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding HiddenText}" Margin="8,0,0,0"
+                               FontFamily="{StaticResource Mono}" FontSize="11"
+                               Foreground="{x:Static local:Palette.TextDisabled}"
+                               VerticalAlignment="Center"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right"
@@ -473,7 +477,32 @@
                         </ItemsControl>
                     </Border>
 
-                    <CheckBox Content="Thumbnails" Margin="14,0,0,0" VerticalAlignment="Center"
+                    <TextBlock Text="CARDS" Margin="14,0,0,0" VerticalAlignment="Center"
+                               FontFamily="{StaticResource Mono}" FontSize="9"
+                               Foreground="{x:Static local:Palette.TextMuted}"/>
+                    <Slider Width="90" Margin="6,0,0,0" VerticalAlignment="Center"
+                            Minimum="1" Maximum="20" TickFrequency="1" IsSnapToTickEnabled="True"
+                            ToolTip="Cards per squad tab; the rest move to the next squad"
+                            Value="{Binding SquadSize, Mode=TwoWay}"/>
+                    <TextBlock Text="{Binding SquadSize}" Margin="6,0,0,0" VerticalAlignment="Center"
+                               MinWidth="18" FontFamily="{StaticResource Mono}" FontSize="11"
+                               Foreground="{x:Static local:Palette.NeutBlue}"/>
+
+                    <Border Margin="10,0,0,0" CornerRadius="3" Padding="10,4" Cursor="Hand"
+                            BorderThickness="1" BorderBrush="{x:Static local:Palette.CardBorder}"
+                            MouseLeftButtonUp="Order_Click"
+                            ToolTip="Reorder the fleet and move characters between squads">
+                        <TextBlock Text="≡ ORDER" FontFamily="{StaticResource Mono}" FontSize="10"
+                                   Foreground="{x:Static local:Palette.TextSecondary}"/>
+                    </Border>
+
+                    <CheckBox Content="Open only" Margin="10,0,0,0" VerticalAlignment="Center"
+                              FontFamily="{StaticResource Mono}" FontSize="10"
+                              Foreground="{x:Static local:Palette.TextMuted}"
+                              ToolTip="Show a card only while that character's client is open"
+                              IsChecked="{Binding OnlyRunningClients}"/>
+
+                    <CheckBox Content="Thumbnails" Margin="10,0,0,0" VerticalAlignment="Center"
                               FontFamily="{StaticResource Mono}" FontSize="10"
                               Foreground="{x:Static local:Palette.TextMuted}"
                               IsChecked="{Binding ShowThumbnails}"/>
@@ -549,9 +578,21 @@
                                                FontSize="9" Foreground="{x:Static local:Palette.TextMuted}"/>
                                 </Border>
                             </StackPanel>
-                            <TextBlock Text="{Binding MergedText}" HorizontalAlignment="Right"
-                                       VerticalAlignment="Center" FontFamily="{StaticResource Mono}"
-                                       FontSize="10" Foreground="{x:Static local:Palette.Success}"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="{Binding MergedText}" VerticalAlignment="Center"
+                                           FontFamily="{StaticResource Mono}" FontSize="10"
+                                           Foreground="{x:Static local:Palette.Success}"/>
+                                <Border Margin="10,0,0,0" CornerRadius="3" Padding="8,2" Cursor="Hand"
+                                        BorderThickness="1"
+                                        BorderBrush="{x:Static local:Palette.CardBorder}"
+                                        MouseLeftButtonUp="ClearComms_Click"
+                                        ToolTip="Empty the view. Nothing on disk is touched.">
+                                    <TextBlock Text="CLEAR" FontFamily="{StaticResource Mono}"
+                                               FontSize="9"
+                                               Foreground="{x:Static local:Palette.TextMuted}"/>
+                                </Border>
+                            </StackPanel>
                         </Grid>
                     </Border>
 

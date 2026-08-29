@@ -114,6 +114,36 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     private int _gridRows = 2;
     public int GridRows { get => _gridRows; private set => Set(ref _gridRows, value); }
 
+    /// <summary>Cards per squad tab, adjustable from the header.</summary>
+    public int SquadSize
+    {
+        get => _config.SquadSize;
+        set
+        {
+            var clamped = Math.Clamp(value, 1, 20);
+            if (_config.SquadSize == clamped)
+                return;
+            _config.SquadSize = clamped;
+            Raise(nameof(SquadSize));
+            RebuildSquads();
+            ShowSquad(_activeSquad);
+        }
+    }
+
+    /// <summary>Hide characters whose client is closed.</summary>
+    public bool OnlyRunningClients
+    {
+        get => _config.ShowOnlyRunningClients;
+        set
+        {
+            if (_config.ShowOnlyRunningClients == value)
+                return;
+            _config.ShowOnlyRunningClients = value;
+            Raise(nameof(OnlyRunningClients));
+            RefreshVisible();
+        }
+    }
+
     // --- settings ------------------------------------------------------------------------
 
     public bool ShowThumbnails
@@ -211,6 +241,7 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
 
         TrackClientWindows();
         RefreshCycleTags();
+        RefreshVisible();
 
         Status = _all.Count == 0
             ? "No EVE logs found yet — waiting for a client to write one."
@@ -268,17 +299,60 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
 
     private int _activeSquad;
 
+    /// <summary>
+    /// The characters eligible for a card: everyone, or only those with a client open.
+    /// Ordering is the saved order, so hiding a closed client does not reshuffle the rest.
+    /// </summary>
+    private List<CharacterCardViewModel> Visible() =>
+        _config.ShowOnlyRunningClients
+            ? _all.Where(c => c.ClientRunning).ToList()
+            : _all.ToList();
+
+    /// <summary>Re-evaluates who is on the grid. Cheap, and called whenever clients change.</summary>
+    private void RefreshVisible()
+    {
+        var visible = Visible();
+        var unchanged = visible.Count == _lastVisibleCount;
+        _lastVisibleCount = visible.Count;
+
+        RebuildSquads();
+
+        // Rebuilding the card list resets scroll positions and restarts animations, so only
+        // do it when the set actually changed.
+        if (!unchanged || Cards.Count == 0)
+            ShowSquad(_activeSquad);
+
+        HiddenCount = _all.Count - visible.Count;
+    }
+
+    private int _lastVisibleCount = -1;
+
+    private int _hiddenCount;
+
+    /// <summary>Characters known from logs whose client is closed.</summary>
+    public int HiddenCount
+    {
+        get => _hiddenCount;
+        private set { if (Set(ref _hiddenCount, value)) Raise(nameof(HiddenText)); }
+    }
+
+    public string HiddenText => _hiddenCount > 0 ? $"{_hiddenCount} closed" : string.Empty;
+
     private void RebuildSquads()
     {
+        var visible = Visible();
         var size = Math.Max(1, _config.SquadSize);
-        var count = Math.Max(1, (int)Math.Ceiling(_all.Count / (double)size));
+        var count = FleetLayout.SquadCount(visible.Count, size);
 
         Squads.Clear();
         for (var i = 0; i < count; i++)
         {
-            var members = _all.Skip(i * size).Take(size).Count();
+            var members = FleetLayout.Squad(visible, i, size).Count();
             Squads.Add(new SquadTabViewModel(i, $"SQUAD {i + 1}", members));
         }
+
+        if (_activeSquad >= Squads.Count)
+            _activeSquad = Squads.Count - 1;
     }
 
     public void ShowSquad(int index)
@@ -287,32 +361,22 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
             return;
 
         _activeSquad = Math.Clamp(index, 0, Squads.Count - 1);
-        var size = Math.Max(1, _config.SquadSize);
 
         Cards.Clear();
-        var members = _all.Skip(_activeSquad * size).Take(size).ToList();
+        var members = FleetLayout.Squad(Visible(), _activeSquad, _config.SquadSize).ToList();
         for (var i = 0; i < members.Count; i++)
         {
-            members[i].Hotkey = "F" + (i + 1);
+            // F1-F12 label the first twelve; past that there is no function key to name.
+            members[i].Hotkey = i < 12 ? "F" + (i + 1) : string.Empty;
             Cards.Add(members[i]);
         }
 
         foreach (var tab in Squads)
             tab.IsSelected = tab.Index == _activeSquad;
 
-        ReflowGrid();
-    }
-
-    /// <summary>
-    /// Two rows once there are more cards than fit one, capped at five columns. Ten cards on
-    /// a 5x2 grid is the shape the layout was designed against.
-    /// </summary>
-    private void ReflowGrid()
-    {
-        var n = Math.Max(1, Cards.Count);
-        var columns = Math.Min(5, Math.Max(1, (int)Math.Ceiling(n / 2.0)));
+        var (columns, rows) = FleetLayout.Grid(Cards.Count);
         GridColumns = columns;
-        GridRows = n > columns ? 2 : 1;
+        GridRows = rows;
     }
 
     /// <summary>Moves a card to another card's position and remembers the new order.</summary>
@@ -330,7 +394,19 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         _all.Insert(to, moved);
 
         _config.CharacterOrder = _all.Select(c => c.Name).ToList();
+        RebuildSquads();
         ShowSquad(_activeSquad);
+    }
+
+    /// <summary>Every known character in display order, for the ordering window.</summary>
+    public IReadOnlyList<CharacterCardViewModel> AllCards => _all;
+
+    /// <summary>Applies an order chosen elsewhere and persists it.</summary>
+    public void ApplyOrder(IReadOnlyList<string> names)
+    {
+        _config.CharacterOrder = names.ToList();
+        ApplyOrder();
+        RefreshVisible();
     }
 
     /// <summary>Every character the dashboard knows about, for the cycle-group roster.</summary>
@@ -397,6 +473,23 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
 
     private string _selectedChannel = "ALL";
 
+    /// <summary>
+    /// Newest message that was on screen when the panel was last cleared. Rebuilding the list
+    /// after a filter change re-reads the session history, which would otherwise bring every
+    /// cleared line straight back.
+    /// </summary>
+    private DateTime _clearedThrough = DateTime.MinValue;
+
+    /// <summary>
+    /// Empties the comms view. The session keeps its history and nothing on disk is touched -
+    /// this is a "I have read all that" button, not a delete.
+    /// </summary>
+    public void ClearMessages()
+    {
+        _clearedThrough = Messages.Count > 0 ? Messages[0].Timestamp : DateTime.UtcNow;
+        Messages.Clear();
+    }
+
     private void BuildChannelChips()
     {
         var seen = Messages.Select(m => m.ChannelTag).Distinct(StringComparer.OrdinalIgnoreCase);
@@ -430,6 +523,8 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         if (!Matches(message.Channel))
             return;
 
+        // Anything genuinely new is shown, even if a late flush gives it an old timestamp.
+
         // Newest first, matching how the panel reads.
         Messages.Insert(0, new CommsRowViewModel(message));
         while (Messages.Count > _config.ChatScrollbackLines)
@@ -443,7 +538,8 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     private void RebuildMessages()
     {
         Messages.Clear();
-        foreach (var message in _session.Chat.Messages.Where(m => Matches(m.Channel))
+        foreach (var message in _session.Chat.Messages
+                     .Where(m => Matches(m.Channel) && m.Timestamp > _clearedThrough)
                      .OrderByDescending(m => m.Timestamp)
                      .Take(_config.ChatScrollbackLines))
             Messages.Add(new CommsRowViewModel(message));

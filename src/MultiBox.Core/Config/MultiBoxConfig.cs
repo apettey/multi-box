@@ -58,6 +58,15 @@ public sealed class MultiBoxConfig
     public int SquadSize { get; set; } = 10;
 
     /// <summary>
+    /// Show a card only while that character's client is actually open.
+    ///
+    /// The alternative is a card per log file, which means every alt that undocked today
+    /// keeps a slot on the grid long after you closed it - and log files outlive the client
+    /// by design, so the list only ever grows during a session.
+    /// </summary>
+    public bool ShowOnlyRunningClients { get; set; } = true;
+
+    /// <summary>
     /// Fleet role per character name: DPS, LOGI, CMD or EWAR. Drives the chip on each card.
     /// Roles cannot be inferred reliably from a log - a Guardian that has not repaired
     /// anything yet looks identical to a idle battleship - so they are declared here.

@@ -199,6 +199,24 @@ public partial class FleetWindow : Window
 
     private void TestVoice_Click(object sender, MouseButtonEventArgs e) => _viewModel.TestVoice();
 
+    private void ClearComms_Click(object sender, MouseButtonEventArgs e) => _viewModel.ClearMessages();
+
+    private void Order_Click(object sender, MouseButtonEventArgs e)
+    {
+        var characters = _viewModel.AllCards
+            .Select(c => (c.Name, Running: c.ClientRunning))
+            .ToList();
+
+        if (characters.Count == 0)
+            return;
+
+        var editor = new CharacterOrderWindow(_config, characters) { Owner = this };
+        editor.ShowDialog();
+
+        _viewModel.ApplyOrder(editor.Order);
+        _viewModel.SaveConfig();
+    }
+
     private void CycleGroups_Click(object sender, MouseButtonEventArgs e)
     {
         var editor = new CycleGroupsWindow(_config, _switcher, _viewModel.AllCharacterNames)

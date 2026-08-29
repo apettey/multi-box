@@ -40,6 +40,17 @@ screenshots current.
   every other channel alphabetically after them.
 - Fleet roles per character (`DPS`, `LOGI`, `CMD`, `EWAR`) shown as a chip on each card, set
   through `CharacterRoles` in the config.
+- **Cards only for characters whose client is open.** A card per log file meant every alt that
+  undocked today kept a slot for the rest of the session, because log files outlive the
+  client. The header reports how many known characters are currently closed. Toggle it with
+  **Open only** if you want the old behaviour.
+- **A cards-per-squad slider** in the header, 1 to 20. Squads are consecutive slices of the
+  character order, so lowering it moves the overflow onto the next squad tab.
+- **A character ordering window** (**≡ ORDER**) for fleets too large to arrange by dragging
+  cards: move characters up and down, see which squad each will land in, and sort every open
+  client to the top in one action.
+- **A CLEAR button on the unified comms panel.** Empties the view only — the session keeps its
+  history and nothing on disk is touched.
 - `AGENTS.md` and this changelog.
 
 ### Changed
@@ -51,6 +62,8 @@ screenshots current.
   remembers where it was left.
 - The comms panel is populated from the session's existing history at startup instead of
   filling only as new lines arrive.
+- The card grid keeps at most five columns and adds rows beyond ten cards, rather than
+  assuming two rows. Twenty cards lay out 5x4.
 
 ### Fixed
 
