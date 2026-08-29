@@ -114,6 +114,33 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     private int _gridRows = 2;
     public int GridRows { get => _gridRows; private set => Set(ref _gridRows, value); }
 
+    private double _cardAreaAspect = FleetLayout.DefaultAreaAspect;
+
+    /// <summary>
+    /// Width over height of the area the cards occupy, so the grid can pick a shape that
+    /// actually fits it. Two cards belong side by side on a wide monitor and stacked on a
+    /// tall one, and only the measurement can tell which.
+    /// </summary>
+    public void SetCardAreaAspect(double aspect)
+    {
+        if (double.IsNaN(aspect) || double.IsInfinity(aspect) || aspect <= 0)
+            return;
+
+        // Ignore noise: re-laying out every card on a one-pixel resize would thrash.
+        if (Math.Abs(aspect - _cardAreaAspect) < 0.02)
+            return;
+
+        _cardAreaAspect = aspect;
+        ApplyGridShape();
+    }
+
+    private void ApplyGridShape()
+    {
+        var (columns, rows) = FleetLayout.Grid(Cards.Count, _cardAreaAspect);
+        GridColumns = columns;
+        GridRows = rows;
+    }
+
     /// <summary>Cards per squad tab, adjustable from the header.</summary>
     public int SquadSize
     {
@@ -374,9 +401,7 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         foreach (var tab in Squads)
             tab.IsSelected = tab.Index == _activeSquad;
 
-        var (columns, rows) = FleetLayout.Grid(Cards.Count);
-        GridColumns = columns;
-        GridRows = rows;
+        ApplyGridShape();
     }
 
     /// <summary>Moves a card to another card's position and remembers the new order.</summary>

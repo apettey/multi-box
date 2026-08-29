@@ -68,6 +68,10 @@ public partial class FleetWindow : Window
 
         // A moved or resized window invalidates every rectangle at once.
         SizeChanged += (_, _) => _overlay?.Sync();
+
+        // The grid shape follows the space available, so it has to be re-measured on resize.
+        CardHost.SizeChanged += (_, _) => ReportCardArea();
+        Loaded += (_, _) => ReportCardArea();
         LocationChanged += (_, _) => _overlay?.Sync();
         DpiChanged += (_, _) => _overlay?.Sync();
 
@@ -120,6 +124,12 @@ public partial class FleetWindow : Window
             Left = area.Left + (area.Width - Width) / 2;
             Top = area.Top + (area.Height - Height) / 2;
         }
+    }
+
+    private void ReportCardArea()
+    {
+        if (CardHost.ActualHeight > 0)
+            _viewModel.SetCardAreaAspect(CardHost.ActualWidth / CardHost.ActualHeight);
     }
 
     private void SavePlacement()

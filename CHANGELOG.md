@@ -62,8 +62,15 @@ screenshots current.
   remembers where it was left.
 - The comms panel is populated from the session's existing history at startup instead of
   filling only as new lines arrive.
-- The card grid keeps at most five columns and adds rows beyond ten cards, rather than
-  assuming two rows. Twenty cards lay out 5x4.
+- **The card grid now fits the space it is given.** It picks the column count whose cells come
+  out nearest square for the area available, rather than following a fixed formula, so two
+  cards sit side by side on a wide monitor and stack on a tall one. The old rule always
+  stacked them, leaving a 1440p monitor almost entirely empty. It also stopped assuming two
+  rows, which was simply wrong past ten cards; twenty now lay out 5x4.
+- **Client previews grow with the card.** The preview was capped at 440px wide, so a two-card
+  squad showed a small thumbnail marooned in an otherwise empty card. It now takes a share of
+  whatever the fixed rows leave, staying 16:9, bounded by width or by height depending on
+  which runs out first.
 
 ### Fixed
 
@@ -89,6 +96,10 @@ screenshots current.
   sample was discarded the instant it arrived. Windows and EWAR hold times are now read on
   the log's own clock, carried forward by however long we have been waiting, which keeps them
   aligned with the data and still lets the readings decay once the shooting stops.
+
+  Measured against a live fight: 148 events arrived with a median lag of **27.9 seconds**
+  (27.5 to 28.2), and **all 148** were already older than both the ten-second stat window and
+  the twelve-second EWAR hold by the time they could be read.
 
 ### Security
 

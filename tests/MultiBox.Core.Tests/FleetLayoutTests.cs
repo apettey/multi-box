@@ -5,33 +5,90 @@ namespace MultiBox.Core.Tests;
 
 public class FleetLayoutTests
 {
+    /// <summary>A 1440p monitor with the comms panel alongside — the shape it is tuned for.</summary>
+    private const double Wide = FleetLayout.DefaultAreaAspect;
+
     [Theory]
     [InlineData(1, 1, 1)]
-    [InlineData(2, 1, 2)]
     [InlineData(4, 2, 2)]
     [InlineData(5, 3, 2)]
+    [InlineData(6, 3, 2)]
+    [InlineData(8, 4, 2)]
     [InlineData(10, 5, 2)]
-    public void UpToTenCardsFillTwoRows(int cards, int columns, int rows)
+    public void CommonFleetSizesMatchTheDesignedShapes(int cards, int columns, int rows)
     {
-        Assert.Equal((columns, rows), FleetLayout.Grid(cards));
+        Assert.Equal((columns, rows), FleetLayout.Grid(cards, Wide));
+    }
+
+    [Fact]
+    public void TwoCardsSitSideBySideOnAWideArea()
+    {
+        // The bug this replaced: two cards stacked into one column, leaving a 1440p monitor
+        // almost entirely empty.
+        Assert.Equal((2, 1), FleetLayout.Grid(2, Wide));
+    }
+
+    [Fact]
+    public void TwoCardsStackOnATallArea()
+    {
+        // Same count, portrait monitor. A fixed rule cannot get both of these right.
+        Assert.Equal((1, 2), FleetLayout.Grid(2, 1440.0 / 2560.0));
     }
 
     [Theory]
-    [InlineData(11, 5, 3)]
+    // Eleven takes 4x3 rather than 5x3: one empty cell instead of four, for cells barely
+    // further from square.
+    [InlineData(11, 4, 3)]
     [InlineData(15, 5, 3)]
     [InlineData(20, 5, 4)]
-    public void PastTenCardsColumnsStopAtFiveAndRowsGrow(int cards, int columns, int rows)
+    public void ColumnsStopAtFiveAndRowsGrow(int cards, int columns, int rows)
     {
-        // Widening past five would make each card too narrow to read on one 1440p monitor.
-        Assert.Equal((columns, rows), FleetLayout.Grid(cards));
+        // Widening past five would make each card too narrow to read.
+        Assert.Equal((columns, rows), FleetLayout.Grid(cards, Wide));
+    }
+
+    [Fact]
+    public void EveryCardGetsACell()
+    {
+        for (var n = 1; n <= 20; n++)
+        {
+            var (columns, rows) = FleetLayout.Grid(n, Wide);
+            Assert.True(columns * rows >= n, $"{n} cards do not fit {columns}x{rows}");
+            Assert.InRange(columns, 1, FleetLayout.MaxColumns);
+        }
+    }
+
+    [Fact]
+    public void ALayoutIsNeverMoreThanOneRowWasteful()
+    {
+        // A hole is tolerable; a whole empty row means the shape was chosen badly.
+        for (var n = 1; n <= 20; n++)
+        {
+            var (columns, rows) = FleetLayout.Grid(n, Wide);
+            Assert.True(columns * rows - n < columns,
+                $"{n} cards laid out {columns}x{rows} wastes an entire row");
+        }
     }
 
     [Fact]
     public void AnEmptyGridIsStillOneCell()
     {
         // The dashboard must not divide by zero on the frame where nothing is running.
-        Assert.Equal((1, 1), FleetLayout.Grid(0));
+        Assert.Equal((1, 1), FleetLayout.Grid(0, Wide));
     }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(0)]
+    [InlineData(-3)]
+    [InlineData(double.PositiveInfinity)]
+    public void AnUnusableAspectFallsBackRatherThanThrowing(double aspect)
+    {
+        // ActualWidth/ActualHeight are zero before the first layout pass.
+        Assert.Equal(FleetLayout.Grid(10, Wide), FleetLayout.Grid(10, aspect));
+    }
+
+    // --- squads --------------------------------------------------------------------------
 
     [Theory]
     [InlineData(0, 10, 1)]

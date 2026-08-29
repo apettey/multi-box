@@ -16,7 +16,10 @@
         <FontFamily x:Key="Sans">IBM Plex Sans, Segoe UI</FontFamily>
         <FontFamily x:Key="Mono">IBM Plex Mono, Consolas</FontFamily>
 
+        <!-- Height from width at 16:9, and the inverse. The pair lets the preview take the
+             larger of "as wide as the card" and "as tall as the space left", whichever fits. -->
         <local:AspectRatioConverter x:Key="Aspect"/>
+        <local:AspectRatioConverter x:Key="WidthFromHeight" Ratio="1.7777778"/>
         <local:BoolToVisibilityConverter x:Key="Show"/>
 
         <!-- The 45° hatch standing in for a client that is not running. -->
@@ -133,9 +136,20 @@
                 <Border x:Name="ThreatGlow" CornerRadius="5" BorderThickness="1" Opacity="0"
                         BorderBrush="{x:Static local:Palette.Danger}" IsHitTestVisible="False"/>
 
-                <DockPanel Margin="0">
+                <Grid Margin="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <!-- The preview and the log share whatever the fixed rows leave, so a
+                             two-card squad grows both instead of stranding the space. -->
+                        <RowDefinition Height="3*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
                     <!-- header -->
-                    <Grid DockPanel.Dock="Top" Margin="10,9,10,6">
+                    <Grid Grid.Row="0" Margin="10,9,10,6">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -179,39 +193,49 @@
                     <!-- MaxWidth caps how much of a card the preview may take. Without it a
                          four-pilot fleet lays out 2x2, each card runs ~800px wide, and a
                          16:9 slot swallows the numbers the dashboard exists to show. -->
-                    <Border DockPanel.Dock="Top" Tag="ThumbSlot" Margin="10,0,10,0" Cursor="Hand"
-                            MaxWidth="440"
-                            CornerRadius="3" BorderThickness="1" Background="{StaticResource Hatch}"
-                            BorderBrush="{x:Static local:Palette.Divider}"
-                            MouseLeftButtonUp="Thumbnail_Click"
-                            ToolTip="Click to bring this client to the front"
-                            Height="{Binding ActualWidth, RelativeSource={RelativeSource Self},
-                                     Converter={StaticResource Aspect}}"
-                            Visibility="{Binding DataContext.ShowThumbnails,
-                                         RelativeSource={RelativeSource AncestorType=Window},
-                                         Converter={StaticResource Show}}">
-                        <Grid>
-                            <TextBlock Text="client not running" HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" FontFamily="{StaticResource Mono}"
-                                       FontSize="10" Foreground="{x:Static local:Palette.TextFaint}"/>
-                            <TextBlock Text="{Binding Hotkey}" HorizontalAlignment="Right"
-                                       VerticalAlignment="Bottom" Margin="0,0,6,4"
-                                       FontFamily="{StaticResource Mono}" FontSize="9"
-                                       Foreground="{x:Static local:Palette.TextFaint}"/>
-                        </Grid>
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="BorderBrush" Value="{x:Static local:Palette.Hover}"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                    </Border>
+                    <!-- The preview keeps 16:9 and fills the cell: as wide as the card allows,
+                         unless the space left is short, in which case height decides. -->
+                    <Grid x:Name="ThumbCell" Grid.Row="1" Margin="10,0"
+                          Visibility="{Binding DataContext.ShowThumbnails,
+                                       RelativeSource={RelativeSource AncestorType=Window},
+                                       Converter={StaticResource Show}}">
+                        <Border Tag="ThumbSlot" Cursor="Hand"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                CornerRadius="3" BorderThickness="1"
+                                Background="{StaticResource Hatch}"
+                                BorderBrush="{x:Static local:Palette.Divider}"
+                                MouseLeftButtonUp="Thumbnail_Click"
+                                ToolTip="Click to bring this client to the front"
+                                Width="{Binding ActualWidth, ElementName=ThumbCell}"
+                                MaxWidth="{Binding ActualHeight, ElementName=ThumbCell,
+                                           Converter={StaticResource WidthFromHeight}}"
+                                Height="{Binding ActualWidth, RelativeSource={RelativeSource Self},
+                                         Converter={StaticResource Aspect}}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="BorderBrush" Value="{x:Static local:Palette.Hover}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                        </Border>
+
+                        <!-- Outside the sized border, so neither scales with the preview. -->
+                        <TextBlock Text="client not running" HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" FontFamily="{StaticResource Mono}"
+                                   FontSize="10" Foreground="{x:Static local:Palette.TextFaint}"
+                                   IsHitTestVisible="False"/>
+                        <TextBlock Text="{Binding Hotkey}" HorizontalAlignment="Right"
+                                   VerticalAlignment="Bottom" Margin="0,0,6,4"
+                                   FontFamily="{StaticResource Mono}" FontSize="9"
+                                   Foreground="{x:Static local:Palette.TextFaint}"
+                                   IsHitTestVisible="False"/>
+                    </Grid>
 
                     <!-- incoming DPS block -->
-                    <Grid DockPanel.Dock="Top" Margin="2,2,2,0">
+                    <Grid Grid.Row="2" Margin="2,2,2,0">
                         <Border x:Name="TankGlow" CornerRadius="4" Opacity="0" IsHitTestVisible="False"/>
                         <StackPanel Margin="8,6,8,4">
                             <StackPanel Orientation="Horizontal">
@@ -249,7 +273,7 @@
                     </Grid>
 
                     <!-- stats row -->
-                    <UniformGrid DockPanel.Dock="Top" Columns="4" Margin="10,6,10,4">
+                    <UniformGrid Grid.Row="3" Columns="4" Margin="10,6,10,4">
                         <StackPanel>
                             <TextBlock Text="DPS OUT" Style="{StaticResource Caption}"/>
                             <TextBlock Text="{Binding DpsOutText}" Style="{StaticResource StatValue}"
@@ -274,7 +298,7 @@
 
                     <!-- EWAR badges sit at the bottom, so a card's threat state is always in
                          the same place regardless of how long its log is. -->
-                    <Border DockPanel.Dock="Bottom" Margin="10,0,10,10" MinHeight="24">
+                    <Border Grid.Row="5" Margin="10,0,10,10" MinHeight="24">
                         <Grid>
                             <ItemsControl ItemsSource="{Binding Ewar}" ItemTemplate="{StaticResource EwarBadge}"
                                           VerticalAlignment="Bottom">
@@ -289,14 +313,14 @@
                         </Grid>
                     </Border>
 
-                    <!-- per-character combat log fills whatever is left -->
-                    <Border Margin="10,6,10,0" Padding="0,6,0,0" BorderThickness="0,1,0,0"
+                    <!-- per-character combat log takes the rest -->
+                    <Border Grid.Row="4" Margin="10,6,10,0" Padding="0,6,0,0" BorderThickness="0,1,0,0"
                             BorderBrush="{x:Static local:Palette.LogSeparator}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <ItemsControl ItemsSource="{Binding Log}" ItemTemplate="{StaticResource LogRow}"/>
                         </ScrollViewer>
                     </Border>
-                </DockPanel>
+                </Grid>
             </Grid>
 
             <DataTemplate.Triggers>
