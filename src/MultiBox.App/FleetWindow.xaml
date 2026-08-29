@@ -633,6 +633,11 @@
                                 <TextBlock Text="{Binding MergedText}" VerticalAlignment="Center"
                                            FontFamily="{StaticResource Mono}" FontSize="10"
                                            Foreground="{x:Static local:Palette.Success}"/>
+                                <CheckBox Content="FOLLOW" Margin="10,0,0,0" VerticalAlignment="Center"
+                                          FontFamily="{StaticResource Mono}" FontSize="9"
+                                          Foreground="{x:Static local:Palette.TextMuted}"
+                                          IsChecked="{Binding FollowChat}"
+                                          ToolTip="Keep the newest message in view. Scrolling away turns this off."/>
                                 <Border Margin="10,0,0,0" CornerRadius="3" Padding="8,2" Cursor="Hand"
                                         BorderThickness="1"
                                         BorderBrush="{x:Static local:Palette.CardBorder}"
@@ -665,9 +670,24 @@
                                    TextWrapping="Wrap"/>
                     </Border>
 
-                    <ScrollViewer Padding="12,4,12,10" VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding Messages}" ItemTemplate="{StaticResource CommsRow}"/>
+                    <!-- Virtualised: a full scrollback of rows measured all at once is what
+                         made the panel stutter while scrolling. -->
+                    <ScrollViewer x:Name="CommsScroll" Padding="12,4,12,10"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  CanContentScroll="True"
+                                  ScrollChanged="CommsScroll_ScrollChanged">
+                        <ItemsControl ItemsSource="{Binding Messages}" ItemTemplate="{StaticResource CommsRow}"
+                                      VirtualizingStackPanel.IsVirtualizing="True"
+                                      VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                      ScrollViewer.CanContentScroll="True"
+                                      VirtualizingPanel.ScrollUnit="Pixel">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
                     </ScrollViewer>
                 </DockPanel>
             </Border>

@@ -124,9 +124,18 @@ what you are arranging against.
 
 One read-only feed of every channel across every client, newest first.
 
+**FOLLOW** keeps the newest message in view as it arrives. Scroll away and it switches itself
+off, so you can read back without the panel dragging you forward; scroll back to the top and
+it switches on again. The newest message is at the top, so "following" means pinned there.
+
 `CLEAR` empties the panel when the backlog stops being relevant. It clears the **view only** —
 the session keeps its history, and nothing on disk is touched. Messages arriving afterwards
 appear as normal.
+
+**Chat older than thirty minutes is dropped automatically**, from the panel and from the
+history behind it. Local from four hours ago is not comms, it is ballast — it pushes the line
+you actually want off the panel. Change it with `ChatRetentionMinutes`, or set it to zero to
+keep everything up to the scrollback limit.
 
 Four clients in the same fleet channel write the same message four times. The panel collapses
 those into one row and marks it `×4`. A `×1` on a fleet message is information too — it means
@@ -186,6 +195,8 @@ it is managed from the UI; these are worth editing by hand:
 | `StatWindowSeconds` | Seconds behind the DPS and reps figures. Default 10, as PyEveLiveDPS uses. |
 | `EwarHoldSeconds` | How long an effect stays lit without a refreshing log line. Default 12. |
 | `ChatChannels` | Channels to follow. Empty means all of them. |
+| `ChatRetentionMinutes` | Minutes of chat to keep. Default 30; zero keeps everything. |
+| `FollowChat` | Keep the newest message in view. Default true, and toggled by FOLLOW. |
 | `Alerts` | Tone, frequency, duration and cooldown per EWAR type. |
 | `SquadSize` | Cards per squad tab. Default 10, and set by the header slider. |
 | `ShowOnlyRunningClients` | Show a card only while the client is open. Default true. |

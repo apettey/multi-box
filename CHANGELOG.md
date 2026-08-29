@@ -51,6 +51,12 @@ screenshots current.
   client to the top in one action.
 - **A CLEAR button on the unified comms panel.** Empties the view only — the session keeps its
   history and nothing on disk is touched.
+- **FOLLOW on the comms panel**, keeping the newest message in view as it arrives. Scrolling
+  away turns it off so you can read back without the panel dragging you forward; scrolling
+  back to the top turns it on again.
+- **Chat older than thirty minutes is dropped** from the panel and from the dedup history
+  behind it. Configurable with `ChatRetentionMinutes`; zero keeps everything up to the
+  scrollback limit.
 - **TOP THREAT on every card: what is hitting that character hardest.** Incoming damage is now
   split by who is dealing it, over the same rolling window as the headline figure, and the
   worst offender is named on the card with its share of the damage. Players are identified by
@@ -77,6 +83,10 @@ screenshots current.
   squad showed a small thumbnail marooned in an otherwise empty card. It now takes a share of
   whatever the fixed rows leave, staying 16:9, bounded by width or by height depending on
   which runs out first.
+- **The comms panel is virtualised and scrolls by pixel.** It previously measured every row in
+  the scrollback at once, which is what made scrolling stutter as the backlog grew. Rows are
+  now realised only as they come into view, and scrolling moves by pixel rather than by row so
+  wrapped messages of different heights do not jump.
 
 ### Fixed
 

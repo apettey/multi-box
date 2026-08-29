@@ -60,6 +60,8 @@ public partial class FleetWindow : Window
             _overlayTimer.Start();
         };
 
+        _viewModel.ScrollToNewest += ScrollCommsToNewest;
+
         _viewModel.ThumbnailsChanged += () =>
         {
             if (_overlay is not null)
@@ -210,6 +212,45 @@ public partial class FleetWindow : Window
     private void TestVoice_Click(object sender, MouseButtonEventArgs e) => _viewModel.TestVoice();
 
     private void ClearComms_Click(object sender, MouseButtonEventArgs e) => _viewModel.ClearMessages();
+
+    // --- comms scrolling --------------------------------------------------------------------
+
+    /// <summary>Set while we are moving the scroll ourselves, so it is not read as the user.</summary>
+    private bool _autoScrolling;
+
+    /// <summary>
+    /// Newest first, so "following" means pinned to the top. Scrolling away turns following
+    /// off and scrolling back turns it on, which is what every chat window does and saves
+    /// fighting the panel to read something four lines up.
+    /// </summary>
+    private void CommsScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (_autoScrolling || Math.Abs(e.VerticalChange) < double.Epsilon)
+            return;
+
+        // A tolerance rather than zero: a partially scrolled row still counts as "at the top".
+        var atTop = CommsScroll.VerticalOffset <= 4;
+        if (_viewModel.FollowChat != atTop)
+            _viewModel.FollowChat = atTop;
+    }
+
+    private void ScrollCommsToNewest()
+    {
+        if (!IsLoaded)
+            return;
+
+        _autoScrolling = true;
+        try
+        {
+            CommsScroll.ScrollToTop();
+        }
+        finally
+        {
+            // Cleared after the scroll has been laid out, or the resulting ScrollChanged
+            // would arrive with the flag already down and be mistaken for the user.
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => _autoScrolling = false));
+        }
+    }
 
     private void Order_Click(object sender, MouseButtonEventArgs e)
     {

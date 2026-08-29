@@ -57,7 +57,11 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         _rescanTimer.Tick += (_, _) => Rescan();
 
         _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _clockTimer.Tick += (_, _) => EveClock = DateTime.UtcNow.ToString("HH:mm:ss") + " EVE";
+        _clockTimer.Tick += (_, _) =>
+        {
+            EveClock = DateTime.UtcNow.ToString("HH:mm:ss") + " EVE";
+            PruneOldMessages();
+        };
 
         BuildChannelChips();
     }
@@ -190,6 +194,26 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         get => _config.VoiceAlerts;
         set { _config.VoiceAlerts = value; _voice.Enabled = value; Raise(nameof(VoiceAlerts)); }
     }
+
+    /// <summary>Keep the newest message in view as it arrives.</summary>
+    public bool FollowChat
+    {
+        get => _config.FollowChat;
+        set
+        {
+            if (_config.FollowChat == value)
+                return;
+            _config.FollowChat = value;
+            Raise(nameof(FollowChat));
+
+            // Turning it back on should catch up immediately rather than at the next message.
+            if (value)
+                ScrollToNewest?.Invoke();
+        }
+    }
+
+    /// <summary>Raised when the panel should jump back to the newest message.</summary>
+    public event Action? ScrollToNewest;
 
     public bool Muted
     {
@@ -553,6 +577,31 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         // Newest first, matching how the panel reads.
         Messages.Insert(0, new CommsRowViewModel(message));
         while (Messages.Count > _config.ChatScrollbackLines)
+            Messages.RemoveAt(Messages.Count - 1);
+
+        if (_config.FollowChat)
+            ScrollToNewest?.Invoke();
+    }
+
+    /// <summary>
+    /// Drops rows past the retention age, from the panel and from the history behind it.
+    ///
+    /// Runs on the clock rather than only as messages arrive, so a quiet channel still ages
+    /// out instead of leaving an hour-old wall of text sitting there until someone speaks.
+    /// </summary>
+    private void PruneOldMessages()
+    {
+        var minutes = _config.ChatRetentionMinutes;
+        if (minutes <= 0)
+            return;
+
+        var maxAge = TimeSpan.FromMinutes(minutes);
+        var cutoff = DateTime.UtcNow - maxAge;
+
+        _session.Chat.PruneOlderThan(DateTime.UtcNow, maxAge);
+
+        // Oldest rows sit at the end, newest first being how the panel reads.
+        while (Messages.Count > 0 && Messages[^1].Timestamp < cutoff)
             Messages.RemoveAt(Messages.Count - 1);
     }
 

@@ -107,6 +107,15 @@ public sealed class MultiBoxConfig
 
     public int ChatScrollbackLines { get; set; } = 2000;
 
+    /// <summary>
+    /// Minutes of chat to keep. Older rows are dropped from the panel and from the dedup
+    /// history behind it. Zero keeps everything until the scrollback limit takes over.
+    /// </summary>
+    public int ChatRetentionMinutes { get; set; } = 30;
+
+    /// <summary>Keep the newest message in view as it arrives.</summary>
+    public bool FollowChat { get; set; } = true;
+
     /// <summary>Per-EWAR-type alert settings, keyed by <see cref="EwarType"/> name.</summary>
     public Dictionary<string, AlertSetting> Alerts { get; set; } = DefaultAlerts();
 

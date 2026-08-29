@@ -36,6 +36,31 @@ public sealed class ChatAggregator
         return unified;
     }
 
+    /// <summary>
+    /// Drops messages older than <paramref name="maxAge"/>. Returns how many went.
+    ///
+    /// Local from four hours ago is not comms, it is ballast: it pushes the line you actually
+    /// want off the panel and keeps the dedup table holding rows nobody will ever look at.
+    /// The list is oldest-first, so this only ever walks the expired prefix.
+    /// </summary>
+    public int PruneOlderThan(DateTime now, TimeSpan maxAge)
+    {
+        if (maxAge <= TimeSpan.Zero)
+            return 0;
+
+        var cutoff = now - maxAge;
+        var removed = 0;
+
+        while (_order.First is { Value: var oldest } && oldest.Timestamp < cutoff)
+        {
+            _order.RemoveFirst();
+            _byKey.Remove(oldest.Key);
+            removed++;
+        }
+
+        return removed;
+    }
+
     private void Trim()
     {
         while (_order.Count > _capacity)
