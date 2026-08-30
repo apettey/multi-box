@@ -119,6 +119,26 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     public int GridRows { get => _gridRows; private set => Set(ref _gridRows, value); }
 
     private double _cardAreaAspect = FleetLayout.DefaultAreaAspect;
+    private double _cardAreaWidth;
+    private double _cardAreaHeight;
+
+    /// <summary>
+    /// Measured size of the card area. The grid needs real pixels rather than a ratio: how
+    /// large a preview a layout yields depends on the card overhead, which is absolute.
+    /// </summary>
+    public void SetCardArea(double width, double height)
+    {
+        if (width <= 0 || height <= 0 || double.IsNaN(width) || double.IsNaN(height))
+            return;
+
+        if (Math.Abs(width - _cardAreaWidth) < 8 && Math.Abs(height - _cardAreaHeight) < 8)
+            return;
+
+        _cardAreaWidth = width;
+        _cardAreaHeight = height;
+        _cardAreaAspect = width / height;
+        ApplyGridShape();
+    }
 
     /// <summary>
     /// Width over height of the area the cards occupy, so the grid can pick a shape that
@@ -140,7 +160,10 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
 
     private void ApplyGridShape()
     {
-        var (columns, rows) = FleetLayout.Grid(Cards.Count, _cardAreaAspect);
+        var (columns, rows) = _cardAreaWidth > 0 && _cardAreaHeight > 0
+            ? FleetLayout.GridForPreview(Cards.Count, _cardAreaWidth, _cardAreaHeight)
+            : FleetLayout.Grid(Cards.Count, _cardAreaAspect);
+
         GridColumns = columns;
         GridRows = rows;
     }

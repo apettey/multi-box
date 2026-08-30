@@ -131,7 +131,7 @@ public partial class FleetWindow : Window
     private void ReportCardArea()
     {
         if (CardHost.ActualHeight > 0)
-            _viewModel.SetCardAreaAspect(CardHost.ActualWidth / CardHost.ActualHeight);
+            _viewModel.SetCardArea(CardHost.ActualWidth, CardHost.ActualHeight);
     }
 
     private void SavePlacement()

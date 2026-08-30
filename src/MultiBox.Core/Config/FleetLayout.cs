@@ -78,6 +78,70 @@ public static class FleetLayout
         return best;
     }
 
+    /// <summary>
+    /// Roughly how much of a card's height is spent on everything that is not the preview:
+    /// the name row, the incoming block, the threat line, the four stats, the EWAR row and the
+    /// margins between them. Measured from a rendered card rather than derived, because it is
+    /// the sum of a dozen paddings.
+    /// </summary>
+    private const double CardOverhead = 262;
+
+    /// <summary>Share of a card's leftover height the preview takes; the log has the rest.</summary>
+    private const double PreviewShare = 0.6;
+
+    private const double PreviewAspect = 16.0 / 9.0;
+
+    /// <summary>
+    /// Columns and rows chosen to make the client preview as large as it can be.
+    ///
+    /// The aspect heuristic optimises for tidy cells, which is a proxy. This optimises for the
+    /// thing actually wanted: it works out how big the preview would end up in each candidate
+    /// layout and takes the winner. The two disagree because the preview is height-limited —
+    /// a card's fixed rows cost the same whether the card is tall or short, so fewer, taller
+    /// cells can leave more room for a preview than more, squatter ones.
+    /// </summary>
+    public static (int Columns, int Rows) GridForPreview(int cardCount, double areaWidth, double areaHeight)
+    {
+        if (cardCount <= 0)
+            return (1, 1);
+
+        if (areaWidth <= 0 || areaHeight <= 0 ||
+            double.IsNaN(areaWidth) || double.IsNaN(areaHeight))
+            return Grid(cardCount);
+
+        var best = (Columns: 1, Rows: cardCount);
+        var bestArea = -1.0;
+
+        for (var columns = 1; columns <= Math.Min(cardCount, MaxColumns); columns++)
+        {
+            var rows = (int)Math.Ceiling(cardCount / (double)columns);
+
+            var cellWidth = areaWidth / columns;
+            var cellHeight = areaHeight / rows;
+
+            var leftover = cellHeight - CardOverhead;
+            if (leftover <= 0)
+                continue;
+
+            var previewHeight = leftover * PreviewShare;
+            var previewWidth = Math.Min(cellWidth, previewHeight * PreviewAspect);
+
+            // Width may bind before height does, in which case the real height is whatever
+            // 16:9 allows for that width.
+            previewHeight = previewWidth / PreviewAspect;
+            var area = previewWidth * previewHeight;
+
+            if (area <= bestArea)
+                continue;
+
+            bestArea = area;
+            best = (columns, rows);
+        }
+
+        // Every candidate was too short to hold a preview at all; fall back to tidy cells.
+        return bestArea < 0 ? Grid(cardCount, areaWidth / areaHeight) : best;
+    }
+
     /// <summary>Number of squad tabs needed. Always at least one, so the header is never empty.</summary>
     public static int SquadCount(int characterCount, int squadSize)
     {

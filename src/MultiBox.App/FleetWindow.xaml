@@ -141,13 +141,15 @@
                 <Grid Margin="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <!-- The preview and the log share whatever the fixed rows leave, so a
-                             two-card squad grows both instead of stranding the space. -->
-                        <RowDefinition Height="3*"/>
+                        <!-- The preview takes exactly the height 16:9 asks for at the card's
+                             width, and no more. Giving it a share of the leftover instead only
+                             centres it in a taller box once the grid has made cards narrow, so
+                             the slack goes to the log, which can use it. -->
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
@@ -210,8 +212,6 @@
                                 MouseLeftButtonUp="Thumbnail_Click"
                                 ToolTip="Click to bring this client to the front"
                                 Width="{Binding ActualWidth, ElementName=ThumbCell}"
-                                MaxWidth="{Binding ActualHeight, ElementName=ThumbCell,
-                                           Converter={StaticResource WidthFromHeight}}"
                                 Height="{Binding ActualWidth, RelativeSource={RelativeSource Self},
                                          Converter={StaticResource Aspect}}">
                             <Border.Style>
