@@ -141,13 +141,13 @@
                 <Grid Margin="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <!-- The preview and the log share whatever the fixed rows leave, so a
-                             two-card squad grows both instead of stranding the space. -->
-                        <RowDefinition Height="3*"/>
+                        <!-- Preview max: nothing else on the card takes a share of the leftover,
+                             so the preview gets all of it and is limited only by the card width. -->
+                        <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
@@ -341,25 +341,19 @@
                         </Grid>
                     </Border>
 
-                    <!-- Per-character combat log, newest first, flowing top-to-bottom and then
-                         into a second column. A card is far wider than a log line, so a single
-                         column left most of the space empty and showed a dozen rows where the
-                         same area holds three or four times as many. -->
-                    <Border Grid.Row="5" Margin="10,6,10,0" Padding="0,6,0,0" BorderThickness="0,1,0,0"
+                    <!-- The combat log is reduced to its newest line. What a glance needs from
+                         it is "what just happened"; the rest of what it carried is already on
+                         the card in aggregate, as the numbers above. -->
+                    <Border Grid.Row="5" Margin="10,6,10,2" Padding="0,6,0,0" BorderThickness="0,1,0,0"
                             BorderBrush="{x:Static local:Palette.LogSeparator}">
-                        <ScrollViewer VerticalScrollBarVisibility="Disabled"
-                                      HorizontalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Log}" ItemTemplate="{StaticResource LogRow}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <!-- ItemHeight keeps rows aligned across columns; without
-                                             it a wrapped line in one column offsets every row
-                                             beside it. -->
-                                        <WrapPanel Orientation="Vertical" ItemHeight="14"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
-                        </ScrollViewer>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Log[0].Time}" FontFamily="{StaticResource Mono}"
+                                       FontSize="10" Foreground="{x:Static local:Palette.TextFaint}"/>
+                            <TextBlock Text="{Binding Log[0].Text}" Margin="6,0,0,0"
+                                       FontFamily="{StaticResource Mono}" FontSize="10"
+                                       Foreground="{Binding Log[0].Foreground}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
                     </Border>
                 </Grid>
             </Grid>
