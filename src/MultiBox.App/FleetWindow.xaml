@@ -141,13 +141,16 @@
                 <Grid Margin="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <!-- The preview and the log share whatever the fixed rows leave, so a
-                             two-card squad grows both instead of stranding the space. -->
-                        <RowDefinition Height="3*"/>
+                        <!-- Preview priority: it takes six parts of the leftover to the log's
+                             one. The preview is height-limited, not width-limited — 16:9 means
+                             every pixel of height it gains buys nearly two of width — so
+                             shifting the split is what actually makes it bigger. The log keeps
+                             a strip, and columns mean a strip still holds a dozen lines. -->
+                        <RowDefinition Height="6*"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="1*" MinHeight="52"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
@@ -347,8 +350,10 @@
                          same area holds three or four times as many. -->
                     <Border Grid.Row="5" Margin="10,6,10,0" Padding="0,6,0,0" BorderThickness="0,1,0,0"
                             BorderBrush="{x:Static local:Palette.LogSeparator}">
+                        <!-- Clipped rather than scrolled: a scrollbar in every card is noise, and the
+                             rows that do not fit are the oldest ones. -->
                         <ScrollViewer VerticalScrollBarVisibility="Disabled"
-                                      HorizontalScrollBarVisibility="Auto">
+                                      HorizontalScrollBarVisibility="Disabled">
                             <ItemsControl ItemsSource="{Binding Log}" ItemTemplate="{StaticResource LogRow}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
