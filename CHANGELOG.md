@@ -87,6 +87,10 @@ screenshots current.
   the scrollback at once, which is what made scrolling stutter as the backlog grew. Rows are
   now realised only as they come into view, and scrolling moves by pixel rather than by row so
   wrapped messages of different heights do not jump.
+- **The per-character combat log flows into columns.** A card is several times wider than a
+  log line, so a single column left most of the card empty and showed about a dozen rows where
+  the same area holds four times as many. Rows now run top to bottom and then into the next
+  column, so a wide card fills with history instead of whitespace.
 
 ### Fixed
 

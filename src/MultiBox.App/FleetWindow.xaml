@@ -111,13 +111,15 @@
             </Border>
         </DataTemplate>
 
-        <!-- One combat-log row. -->
+        <!-- One combat-log row. Capped in width so a single long line cannot widen the whole
+             column it happens to land in. -->
         <DataTemplate x:Key="LogRow">
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+            <StackPanel Orientation="Horizontal" Margin="0,0,14,0" MaxWidth="300">
                 <TextBlock Text="{Binding Time}" FontFamily="{StaticResource Mono}" FontSize="10"
                            Foreground="{x:Static local:Palette.TextFaint}"/>
                 <TextBlock Text="{Binding Text}" Margin="6,0,0,0" FontFamily="{StaticResource Mono}"
-                           FontSize="10" Foreground="{Binding Foreground}" TextTrimming="CharacterEllipsis"/>
+                           FontSize="10" Foreground="{Binding Foreground}"
+                           TextTrimming="CharacterEllipsis" ToolTip="{Binding Text}"/>
             </StackPanel>
         </DataTemplate>
 
@@ -339,11 +341,24 @@
                         </Grid>
                     </Border>
 
-                    <!-- per-character combat log takes the rest -->
+                    <!-- Per-character combat log, newest first, flowing top-to-bottom and then
+                         into a second column. A card is far wider than a log line, so a single
+                         column left most of the space empty and showed a dozen rows where the
+                         same area holds three or four times as many. -->
                     <Border Grid.Row="5" Margin="10,6,10,0" Padding="0,6,0,0" BorderThickness="0,1,0,0"
                             BorderBrush="{x:Static local:Palette.LogSeparator}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <ItemsControl ItemsSource="{Binding Log}" ItemTemplate="{StaticResource LogRow}"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Disabled"
+                                      HorizontalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding Log}" ItemTemplate="{StaticResource LogRow}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <!-- ItemHeight keeps rows aligned across columns; without
+                                             it a wrapped line in one column offsets every row
+                                             beside it. -->
+                                        <WrapPanel Orientation="Vertical" ItemHeight="14"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
                         </ScrollViewer>
                     </Border>
                 </Grid>

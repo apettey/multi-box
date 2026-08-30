@@ -11,7 +11,12 @@ public sealed class CharacterCardViewModel : ObservableObject
     private const int SparkWidth = 100;
     private const int SparkHeight = 22;
     private const int HeavyIncoming = 300;
-    private const int LogRows = 12;
+    /// <summary>
+    /// How many log rows to hand the card. The panel flows them into as many columns as fit
+    /// and clips the rest, so this is an upper bound rather than what is shown: a tall card
+    /// two columns wide displays far more than a short one.
+    /// </summary>
+    private const int LogRows = 48;
 
     /// <summary>An em dash reads as "nothing here" without looking like a zero reading.</summary>
     private const string Dash = "—";

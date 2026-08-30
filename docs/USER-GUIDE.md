@@ -75,7 +75,10 @@ Each card is one pilot, top to bottom:
 - **Four numbers**: DPS OUT, REPS IN, CAP XFER, NEUT/NOS. A dash means nothing is happening,
   which is deliberately distinct from a zero reading.
 - **Combat log** for that pilot, colour-coded: bright red for heavy hits, muted red for chip
-  damage, green for reps, blue for cap, and each EWAR effect in its own colour.
+  damage, green for reps, blue for cap, and each EWAR effect in its own colour. It reads top
+  to bottom and then into the next column, so a wide card fills with history rather than
+  whitespace — how many rows you see depends on how much room the card has. A line clipped
+  for width shows in full on hover.
 - **EWAR badges** along the bottom, naming who is doing it — `SCRAM Ares "Vint-1"`. A web
   flashes rather than merely sitting there. `NO EWAR` when you are clear.
 
