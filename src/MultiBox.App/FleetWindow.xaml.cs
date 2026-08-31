@@ -213,6 +213,12 @@ public partial class FleetWindow : Window
 
     private void ClearComms_Click(object sender, MouseButtonEventArgs e) => _viewModel.ClearMessages();
 
+    // Hiding the panel changes the card area, and CardHost.SizeChanged reports that on its
+    // own, so the grid and every preview resize without either being told about comms.
+    private void HideComms_Click(object sender, MouseButtonEventArgs e) => _viewModel.ShowComms = false;
+
+    private void ShowComms_Click(object sender, MouseButtonEventArgs e) => _viewModel.ShowComms = true;
+
     // --- comms scrolling --------------------------------------------------------------------
 
     /// <summary>Set while we are moving the scroll ourselves, so it is not read as the user.</summary>

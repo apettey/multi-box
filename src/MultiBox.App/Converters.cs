@@ -13,6 +13,16 @@ public sealed class BoolToVisibilityConverter : IValueConverter
         value is Visibility.Visible;
 }
 
+/// <summary>Visible when the value is false. The mirror of BoolToVisibilityConverter.</summary>
+public sealed class InverseBoolToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is true ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is not Visibility.Visible;
+}
+
 /// <summary>
 /// Height from width at 16:9 — the EVE client's own ratio, so the live thumbnail fills the
 /// slot without letterboxing. WPF has no aspect-ratio primitive, so the slot binds its

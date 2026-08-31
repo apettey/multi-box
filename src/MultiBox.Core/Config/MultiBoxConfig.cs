@@ -116,6 +116,12 @@ public sealed class MultiBoxConfig
     /// <summary>Keep the newest message in view as it arrives.</summary>
     public bool FollowChat { get; set; } = true;
 
+    /// <summary>
+    /// Show the unified comms panel. Collapsing it hands its width back to the cards, which
+    /// is the cheapest way there is to make every preview bigger at once.
+    /// </summary>
+    public bool ShowComms { get; set; } = true;
+
     /// <summary>Per-EWAR-type alert settings, keyed by <see cref="EwarType"/> name.</summary>
     public Dictionary<string, AlertSetting> Alerts { get; set; } = DefaultAlerts();
 
