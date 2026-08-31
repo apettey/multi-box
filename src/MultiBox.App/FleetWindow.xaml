@@ -21,6 +21,7 @@
         <local:AspectRatioConverter x:Key="Aspect"/>
         <local:AspectRatioConverter x:Key="WidthFromHeight" Ratio="1.7777778"/>
         <local:BoolToVisibilityConverter x:Key="Show"/>
+        <local:InverseBoolToVisibilityConverter x:Key="Hide"/>
 
         <!-- The 45° hatch standing in for a client that is not running. -->
         <DrawingBrush x:Key="Hatch" TileMode="Tile" Viewport="0,0,12,12" ViewportUnits="Absolute">
@@ -611,7 +612,9 @@
         <Grid Grid.Row="1" Margin="5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="440"/>
+                <!-- Auto, so the column is whatever is visible in it: the full panel, or the
+                     26px spine it collapses to. The cards take the difference. -->
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <ItemsControl x:Name="CardHost" Grid.Column="0" ItemsSource="{Binding Cards}"
@@ -626,7 +629,30 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <Border Grid.Column="1" Margin="5" Background="{x:Static local:Palette.Panel}"
+            <!-- Collapsed: a spine you can click to bring the panel back. Without something
+                 left behind, a hidden panel is a feature you cannot find again. -->
+            <Border Grid.Column="1" Margin="5" Width="26" Cursor="Hand"
+                    Background="{x:Static local:Palette.Panel}" CornerRadius="5"
+                    BorderThickness="1" BorderBrush="{x:Static local:Palette.CardBorder}"
+                    MouseLeftButtonUp="ShowComms_Click"
+                    ToolTip="Show the unified comms panel"
+                    Visibility="{Binding ShowComms, Converter={StaticResource Hide}}">
+                <StackPanel VerticalAlignment="Top" Margin="0,10,0,0">
+                    <TextBlock Text="«" HorizontalAlignment="Center" FontFamily="{StaticResource Mono}"
+                               FontSize="13" Foreground="{x:Static local:Palette.TextSecondary}"/>
+                    <TextBlock Text="COMMS" Margin="0,10,0,0" HorizontalAlignment="Center"
+                               FontFamily="{StaticResource Mono}" FontSize="10"
+                               Foreground="{x:Static local:Palette.TextMuted}">
+                        <TextBlock.LayoutTransform>
+                            <RotateTransform Angle="90"/>
+                        </TextBlock.LayoutTransform>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Margin="5" Width="440"
+                    Visibility="{Binding ShowComms, Converter={StaticResource Show}}"
+                    Background="{x:Static local:Palette.Panel}"
                     CornerRadius="5" BorderThickness="1"
                     BorderBrush="{x:Static local:Palette.CardBorder}">
                 <DockPanel>
@@ -648,6 +674,14 @@
                                 <TextBlock Text="{Binding MergedText}" VerticalAlignment="Center"
                                            FontFamily="{StaticResource Mono}" FontSize="10"
                                            Foreground="{x:Static local:Palette.Success}"/>
+                                <Border Margin="10,0,0,0" CornerRadius="3" Padding="7,2" Cursor="Hand"
+                                        BorderThickness="1"
+                                        BorderBrush="{x:Static local:Palette.CardBorder}"
+                                        MouseLeftButtonUp="HideComms_Click"
+                                        ToolTip="Hide the panel and give its width to the cards">
+                                    <TextBlock Text="»" FontFamily="{StaticResource Mono}" FontSize="10"
+                                               Foreground="{x:Static local:Palette.TextMuted}"/>
+                                </Border>
                                 <CheckBox Content="FOLLOW" Margin="10,0,0,0" VerticalAlignment="Center"
                                           FontFamily="{StaticResource Mono}" FontSize="9"
                                           Foreground="{x:Static local:Palette.TextMuted}"

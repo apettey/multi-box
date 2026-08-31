@@ -195,6 +195,22 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         set { _config.VoiceAlerts = value; _voice.Enabled = value; Raise(nameof(VoiceAlerts)); }
     }
 
+    /// <summary>
+    /// Show the comms panel. Hiding it widens every card, and the grid re-measures itself
+    /// off the back of that, so the previews grow without anything else being touched.
+    /// </summary>
+    public bool ShowComms
+    {
+        get => _config.ShowComms;
+        set
+        {
+            if (_config.ShowComms == value)
+                return;
+            _config.ShowComms = value;
+            Raise(nameof(ShowComms));
+        }
+    }
+
     /// <summary>Keep the newest message in view as it arrives.</summary>
     public bool FollowChat
     {
