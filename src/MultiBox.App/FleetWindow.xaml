@@ -139,19 +139,19 @@
                 <Border x:Name="ThreatGlow" CornerRadius="5" BorderThickness="1" Opacity="0"
                         BorderBrush="{x:Static local:Palette.Danger}" IsHitTestVisible="False"/>
 
-                <Grid Margin="0">
+                <Grid x:Name="CardRoot" Margin="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <!-- Preview priority: it takes six parts of the leftover to the log's
-                             one. The preview is height-limited, not width-limited — 16:9 means
-                             every pixel of height it gains buys nearly two of width — so
-                             shifting the split is what actually makes it bigger. The log keeps
-                             a strip, and columns mean a strip still holds a dozen lines. -->
-                        <RowDefinition Height="6*"/>
+                        <!-- Preview priority. The preview row is Auto, so it is exactly as tall
+                             as 16:9 needs at the card's width and never a pixel more: giving it
+                             a share of the leftover instead left it floating in dead space
+                             whenever the card was wide enough that width bound first. Its size
+                             is capped below, and the log takes everything that is left. -->
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="1*" MinHeight="52"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" MinHeight="52"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
@@ -214,8 +214,7 @@
                                 MouseLeftButtonUp="Thumbnail_Click"
                                 ToolTip="Click to bring this client to the front"
                                 Width="{Binding ActualWidth, ElementName=ThumbCell}"
-                                MaxWidth="{Binding ActualHeight, ElementName=ThumbCell,
-                                           Converter={StaticResource WidthFromHeight}}"
+                                MaxWidth="{Binding ActualHeight, ElementName=CardRoot}"
                                 Height="{Binding ActualWidth, RelativeSource={RelativeSource Self},
                                          Converter={StaticResource Aspect}}">
                             <Border.Style>
