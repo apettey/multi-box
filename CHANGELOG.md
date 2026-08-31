@@ -57,6 +57,11 @@ screenshots current.
 - **Chat older than thirty minutes is dropped** from the panel and from the dedup history
   behind it. Configurable with `ChatRetentionMinutes`; zero keeps everything up to the
   scrollback limit.
+- **The comms panel collapses.** `»` in its header hides it to a 26px spine on the right; the
+  spine brings it back. The 440px goes to the cards, and because the panel's column is Auto
+  the grid simply re-measures and re-picks its shape — nothing had to be told about comms.
+  With three cards and the panel hidden the previews reach roughly six times their old area.
+  Remembered as `ShowComms`.
 - **TOP THREAT on every card: what is hitting that character hardest.** Incoming damage is now
   split by who is dealing it, over the same rolling window as the headline figure, and the
   worst offender is named on the card with its share of the damage. Players are identified by
@@ -87,6 +92,14 @@ screenshots current.
   the scrollback at once, which is what made scrolling stutter as the backlog grew. Rows are
   now realised only as they come into view, and scrolling moves by pixel rather than by row so
   wrapped messages of different heights do not jump.
+- **The preview row is sized to the preview.** It previously took a fixed share of the card's
+  leftover height, which is only right while height is the binding constraint. Once a card was
+  wide enough for width to bind first — most of the time with few cards, and always with the
+  comms panel hidden — the row stayed at its share while the preview took only what 16:9
+  allowed, and the difference sat as dead space above and below it. The row is now exactly as
+  tall as the preview, capped at the card's own height so it cannot crowd out the numbers,
+  and the log takes everything left. The preview is roughly three times its old area with the
+  comms panel open.
 - **The per-character combat log flows into columns.** A card is several times wider than a
   log line, so a single column left most of the card empty and showed about a dozen rows where
   the same area holds four times as many. Rows now run top to bottom and then into the next

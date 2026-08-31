@@ -65,7 +65,9 @@ Each card is one pilot, top to bottom:
   (`DPS`/`LOGI`/`CMD`/`EWAR`) comes from your config. Blue `G1·3` tags show cycle-group
   membership and position.
 - **Live thumbnail.** Your actual client, drawn by Windows. Click it to bring that client to
-  the front. The hotkey label sits in the corner.
+  the front. The hotkey label sits in the corner. It takes as much of the card as 16:9 allows
+  at that width, up to a little over half the card's height, and the combat log takes what is
+  left — so fewer cards, a wider window or a hidden comms panel all make it bigger.
 - **INCOMING DPS**, with the two sparklines behind it: red is incoming damage, green is reps
   received, both on the same scale so you can see whether the green is keeping up.
   - `▲ EXCEEDS REPS` in red — damage is outrunning your logi. The block pulses red.
@@ -126,6 +128,11 @@ what you are arranging against.
 ### Unified comms
 
 One read-only feed of every channel across every client, newest first.
+
+**`»` hides the panel**, collapsing it to a narrow spine on the right; click the spine to bring
+it back. The 440px it gives up goes to the cards, and the grid re-measures itself off the back
+of that — so hiding comms is the cheapest way to make every preview bigger at once. Which
+state you left it in is remembered.
 
 **FOLLOW** keeps the newest message in view as it arrives. Scroll away and it switches itself
 off, so you can read back without the panel dragging you forward; scroll back to the top and
@@ -200,6 +207,7 @@ it is managed from the UI; these are worth editing by hand:
 | `ChatChannels` | Channels to follow. Empty means all of them. |
 | `ChatRetentionMinutes` | Minutes of chat to keep. Default 30; zero keeps everything. |
 | `FollowChat` | Keep the newest message in view. Default true, and toggled by FOLLOW. |
+| `ShowComms` | Show the comms panel. Default true, and toggled by `»` / the spine. |
 | `Alerts` | Tone, frequency, duration and cooldown per EWAR type. |
 | `SquadSize` | Cards per squad tab. Default 10, and set by the header slider. |
 | `ShowOnlyRunningClients` | Show a card only while the client is open. Default true. |
