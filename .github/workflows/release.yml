@@ -1,0 +1,20 @@
+# Builds MultiBox for Windows via the shared reusable workflow in apettey/eve-contracts.
+# - every branch push / manual run: zip in the run's Artifacts
+# - v* tag: zip attached to a GitHub Release
+name: Release
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: apettey/eve-contracts/.github/workflows/build-windows-app.yml@main
+    permissions:
+      contents: write
+    with:
+      project: src/MultiBox.App/MultiBox.App.csproj
+      app-name: MultiBox
+      test-project: tests/MultiBox.Core.Tests/MultiBox.Core.Tests.csproj
