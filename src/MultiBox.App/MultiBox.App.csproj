@@ -28,6 +28,7 @@
     <!-- Spoken web warnings. Microsoft-published wrapper over the SAPI voices Windows
          already ships; MultiBox.Core remains dependency-free. -->
     <PackageReference Include="System.Speech" Version="9.0.0" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
 
 </Project>

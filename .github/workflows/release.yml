@@ -17,4 +17,5 @@ jobs:
     with:
       project: src/MultiBox.App/MultiBox.App.csproj
       app-name: MultiBox
+      main-exe: MultiBox.exe
       test-project: tests/MultiBox.Core.Tests/MultiBox.Core.Tests.csproj
