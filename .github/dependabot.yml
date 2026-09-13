@@ -1,5 +1,9 @@
 # Dependabot keeps dependencies up to date by opening pull requests.
 # Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates
+#
+# Labels are intentionally not set here: Dependabot's default behavior applies (and
+# creates, if missing) a "dependencies" label plus a per-ecosystem label. Naming a
+# custom label instead would leave PRs unlabeled unless the label already exists.
 version: 2
 updates:
   # NuGet packages across the solution (all *.csproj discovered from the root).
@@ -13,16 +17,19 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       prefix: "deps"
-    labels:
-      - "dependencies"
-    # Bundle low-risk updates into a single PR to cut noise; majors stay separate.
+    # Let a freshly published version settle for a week before proposing it.
+    cooldown:
+      default-days: 7
+    # Bundle minor/patch into a single PR to cut noise; majors get their own PR.
     groups:
       nuget-minor-and-patch:
+        patterns:
+          - "*"
         update-types:
           - "minor"
           - "patch"
 
-  # Keep GitHub Actions used in workflows current (applies once workflows exist).
+  # Keep GitHub Actions referenced in this repo's workflows current.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -32,10 +39,12 @@ updates:
       timezone: "Etc/UTC"
     commit-message:
       prefix: "ci"
-    labels:
-      - "dependencies"
+    cooldown:
+      default-days: 7
     groups:
-      actions-all:
+      actions-minor-and-patch:
+        patterns:
+          - "*"
         update-types:
           - "minor"
           - "patch"
