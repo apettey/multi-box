@@ -165,6 +165,16 @@ screenshots current.
   EVE writes no game-log line when they are applied. The web *alert* fires only for a web the
   log actually reports.
 
+## [1.0.2] - 2026-09-24
+
+### Changed
+
+- **Dependency updates.** Voice alerts now use System.Speech 10.0.12, the .NET 10 build of
+  Windows' speech engine (was 9.0.0); nothing changes in how alerts sound. The test tooling
+  moves to current releases — xunit 2.9.3, xunit.runner.visualstudio 4.0.0,
+  Microsoft.NET.Test.Sdk 18.10.1 and coverlet.collector 10.0.1 — none of which ship in the
+  app.
+
 ## [1.0.1] - 2026-09-24
 
 ### Fixed
