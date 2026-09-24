@@ -170,12 +170,12 @@ public sealed class MultiBoxSession : IDisposable
             _namesById[file.CharacterId] = listener;
             if (!isChat && !_monitors.ContainsKey(file.CharacterId))
             {
-                var monitor = new CharacterMonitor(listener, file.CharacterId,
-                    TimeSpan.FromSeconds(_config.StatWindowSeconds),
-                    TimeSpan.FromSeconds(_config.EwarHoldSeconds));
-                var name = listener;
-                monitor.Ewar.EwarApplied += active => EwarAlert?.Invoke(name, active);
-                _monitors[file.CharacterId] = monitor;
+                // A window-only placeholder for this pilot gives way to the real log.
+                foreach (var placeholder in _monitors.Where(kv => kv.Key < 0 &&
+                             kv.Value.Name.Equals(listener, StringComparison.OrdinalIgnoreCase)).ToList())
+                    _monitors.Remove(placeholder.Key);
+
+                _monitors[file.CharacterId] = CreateMonitor(listener, file.CharacterId);
             }
         }
 
@@ -197,6 +197,111 @@ public sealed class MultiBoxSession : IDisposable
             GameParser = isChat ? null : new GamelogParser(listener),
             ChatParser = isChat ? new ChatlogParser(header.ChannelName ?? file.Channel ?? "Unknown", listener) : null
         };
+    }
+
+    private CharacterMonitor CreateMonitor(string name, long characterId)
+    {
+        var monitor = new CharacterMonitor(name, characterId,
+            TimeSpan.FromSeconds(_config.StatWindowSeconds),
+            TimeSpan.FromSeconds(_config.EwarHoldSeconds));
+        monitor.Ewar.EwarApplied += active => EwarAlert?.Invoke(name, active);
+        return monitor;
+    }
+
+    /// <summary>
+    /// Gives every running client a monitor, even one that has written no log this session.
+    /// A client with logging switched off, or one that has not flushed its first gamelog yet,
+    /// is still a pilot on the grid: it gets a card, a preview and focus, just no numbers.
+    /// </summary>
+    public void AddRunningClients(IEnumerable<string> characterNames)
+    {
+        foreach (var name in characterNames)
+        {
+            lock (_gate)
+            {
+                if (_monitors.Values.Any(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+            }
+
+            var id = ResolveCharacterId(name);
+            lock (_gate)
+            {
+                if (_monitors.ContainsKey(id))
+                    continue;
+                if (id > 0)
+                    _namesById[id] = name;
+                _monitors[id] = CreateMonitor(name, id);
+            }
+        }
+    }
+
+    private readonly Dictionary<string, long> _resolvedIds = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The pilot's real id from this session, the config, or any older gamelog on disk;
+    /// failing all three, a stable negative placeholder that cannot collide with a real id.
+    /// </summary>
+    private long ResolveCharacterId(string name)
+    {
+        lock (_gate)
+        {
+            foreach (var kv in _namesById)
+                if (kv.Value.Equals(name, StringComparison.OrdinalIgnoreCase))
+                    return kv.Key;
+        }
+
+        if (_config.CharacterIds.TryGetValue(name, out var configured) && configured > 0)
+            return configured;
+
+        if (_resolvedIds.TryGetValue(name, out var cached))
+            return cached;
+
+        long id = 0;
+        var gamelogs = LogDirectory.FindGamelogFolder(_config.GamelogPath);
+        if (gamelogs is not null)
+        {
+            var files = Directory.EnumerateFiles(gamelogs, "*.txt")
+                .Select(LogFileName.TryParse)
+                .Where(f => f is not null)
+                .OrderByDescending(f => f!.SessionStart);
+            foreach (var file in files)
+            {
+                try
+                {
+                    if (name.Equals(LogHeader.Parse(ReadHeaderLines(file!.Path)).Listener,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        id = file.CharacterId;
+                        break;
+                    }
+                }
+                catch (IOException)
+                {
+                    // Locked mid-write; an older file will do just as well.
+                }
+            }
+        }
+
+        if (id == 0)
+            id = PlaceholderId(name);
+
+        _resolvedIds[name] = id;
+        return id;
+    }
+
+    /// <summary>FNV-1a over the lower-cased name, negated. Stable across runs, unlike GetHashCode.</summary>
+    public static long PlaceholderId(string name)
+    {
+        unchecked
+        {
+            var hash = 14695981039346656037UL;
+            foreach (var c in name.ToLowerInvariant())
+            {
+                hash ^= c;
+                hash *= 1099511628211UL;
+            }
+            return -(long)(hash & 0x3FFF_FFFF_FFFF_FFFF) - 1;
+        }
     }
 
     private static IEnumerable<string> ReadHeaderLines(string path)

@@ -287,8 +287,28 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         // Only this session's files: replaying yesterday's combat would be noise.
         _session.Refresh(DateTime.UtcNow.Date.AddDays(-1));
 
+        // A running client is on the grid whether or not it has written a log yet.
+        try
+        {
+            _session.AddRunningClients(EveClientLocator.FindClients().Select(c => c.CharacterName));
+        }
+        catch (Exception)
+        {
+            // Window enumeration is a nicety; the numbers work without it.
+        }
+
+        var monitors = _session.Characters;
+        var live = monitors.Select(m => m.CharacterId).ToHashSet();
         var added = false;
-        foreach (var monitor in _session.Characters)
+        foreach (var stale in _all.Where(c => !live.Contains(c.CharacterId)).ToList())
+        {
+            // A window-only placeholder whose real log has since appeared.
+            _all.Remove(stale);
+            _cards.Remove(stale.CharacterId);
+            added = true;
+        }
+
+        foreach (var monitor in monitors)
         {
             if (_cards.ContainsKey(monitor.CharacterId))
                 continue;

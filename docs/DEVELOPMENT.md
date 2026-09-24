@@ -74,8 +74,9 @@ only works on made-up data cannot pass.
 | `AttributionTests` | which pilot an event belongs to (regression guard) |
 | `ChatDedupTests` | UTF-16 handling, per-line BOMs, cross-client dedup, tailer semantics |
 | `ConfigAndAlertTests` | config round-trip, eve-o-preview import, EWAR hold behaviour |
+| `RunningClientTests` | cards for open clients that have written no log, id lookup, placeholder hand-off |
 
-39 tests total, ~300 ms.
+147 tests total, ~370 ms. The table lists the main suites, not every file.
 
 ### The coverage test
 
