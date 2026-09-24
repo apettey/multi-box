@@ -22,4 +22,11 @@ public partial class App : Application
             args.Handled = true;
         };
     }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        // An update nobody restarted for still lands: it applies once this process is gone.
+        UpdateChecker.ApplyOnExit();
+        base.OnExit(e);
+    }
 }

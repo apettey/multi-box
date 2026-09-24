@@ -211,6 +211,8 @@ public partial class FleetWindow : Window
 
     private void TestVoice_Click(object sender, MouseButtonEventArgs e) => _viewModel.TestVoice();
 
+    private void RestartToUpdate_Click(object sender, MouseButtonEventArgs e) => _viewModel.RestartToUpdate();
+
     private void ClearComms_Click(object sender, MouseButtonEventArgs e) => _viewModel.ClearMessages();
 
     // Hiding the panel changes the card area, and CardHost.SizeChanged reports that on its

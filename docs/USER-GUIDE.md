@@ -31,7 +31,17 @@ will work.
 
 ### Header
 
-Left to right: the fleet totals, then your controls.
+Next to the title is the **version you are running**, e.g. `v1.0.3`.
+
+Copies installed with `MultiBox-win-Setup.exe` (or unpacked from `MultiBox-win-Portable.zip`)
+keep themselves up to date. About 30 seconds
+after launch, and hourly after that, MultiBox checks GitHub for a newer release and downloads
+it in the background. When it is ready a green **`⬆ v1.0.4 READY · RESTART`** chip appears
+beside the version: click it to restart into the new version now, or ignore it and the update
+installs when you close MultiBox. The plain `MultiBox-x.y.z-win-x64.zip` and builds from
+source never update.
+
+On the right: the fleet totals, then your controls.
 
 | Readout | Meaning |
 |---|---|

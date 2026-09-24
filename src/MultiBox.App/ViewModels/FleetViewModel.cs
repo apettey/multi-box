@@ -42,6 +42,10 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         _session.EwarAlert += OnEwarAlert;
         _session.ChatMessageAdded += message => Dispatch(() => AddMessage(message));
 
+        // The download may already have finished before the window subscribed.
+        UpdateChecker.UpdateReady += version => Dispatch(() => UpdateVersion = version);
+        _updateVersion = UpdateChecker.ReadyVersion;
+
         // Reading appended log text is cheap, so a short interval keeps alerts responsive.
         _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         _pollTimer.Tick += (_, _) => Tick();
@@ -100,6 +104,31 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
 
     private string _status = "Starting…";
     public string Status { get => _status; private set => Set(ref _status, value); }
+
+    /// <summary>The running version, shown in the header, e.g. "v1.0.3".</summary>
+    public string VersionText => "v" + UpdateChecker.CurrentVersion;
+
+    private string? _updateVersion;
+
+    /// <summary>A downloaded update waiting to be applied, or null.</summary>
+    public string? UpdateVersion
+    {
+        get => _updateVersion;
+        private set
+        {
+            if (Set(ref _updateVersion, value))
+            {
+                Raise(nameof(UpdateReady));
+                Raise(nameof(UpdateText));
+            }
+        }
+    }
+
+    public bool UpdateReady => _updateVersion is not null;
+
+    public string UpdateText => $"⬆ v{_updateVersion} READY · RESTART";
+
+    public void RestartToUpdate() => UpdateChecker.RestartToUpdate();
 
     private int _mergedCount;
     public int MergedCount
