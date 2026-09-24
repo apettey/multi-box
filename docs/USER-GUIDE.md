@@ -54,6 +54,11 @@ wrote them, so a card per log file would mean every alt that undocked today keep
 the rest of the evening. The status line says how many known characters are closed — "Watching
 14 character(s). 10 closed" means four cards and ten pilots it knows about but is not showing.
 
+**Every open client gets a card, log or no log.** A client titled `EVE - <name>` shows up
+even if it has not written a log this session — for instance when that character has chat or
+game logging switched off in EVE's settings. Its thumbnail and click-to-focus work straight
+away; its numbers and combat log stay empty until EVE writes a gamelog for it.
+
 Untick **Open only** to show every character it has ever seen a log for this session.
 
 ### A character card

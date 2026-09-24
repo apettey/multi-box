@@ -10,7 +10,7 @@ repeated once per client.
 Built to replace a screen full of separate windows — one PyEveLiveDPS instance per
 character, plus four copies of every chat channel — with one place to look.
 
-> **Status:** core is built and verified against real logs (62 tests, 99.97% line coverage,
+> **Status:** core is built and verified against real logs (147 tests, 99.97% line coverage,
 > Windows binaries publish clean, EULA compliance audited and enforced in CI). The dashboard
 > and the client previews are running on Windows. Targets .NET 10. See
 > [known gaps](docs/ARCHITECTURE.md#known-gaps).
@@ -195,7 +195,7 @@ Full key reference: [CONFIGURATION.md](docs/CONFIGURATION.md).
 dotnet test
 ```
 
-62 tests, ~320 ms. Most run against the **real logs in `samples/`** — including the
+147 tests, ~370 ms. Most run against the **real logs in `samples/`** — including the
 deliberate ECM/scramble/web session — rather than invented fixtures, because a parser that
 only works on made-up data cannot pass. The corpus test asserts that over 99% of real combat
 lines parse; it currently sits at **99.97%** (14,383 of 14,388) and prints whatever it could

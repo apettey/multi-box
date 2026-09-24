@@ -165,6 +165,16 @@ screenshots current.
   EVE writes no game-log line when they are applied. The web *alert* fires only for a web the
   log actually reports.
 
+## [1.0.1] - 2026-09-24
+
+### Fixed
+
+- **A running client that had written no log this session never got a card.** Cards were
+  built only from gamelogs dated since yesterday, so a client with logging switched off — or
+  simply no fresh gamelog yet — was invisible even with its window open. Every running
+  `EVE - <name>` window now gets a card, a preview and click-to-focus straight away; its
+  character id comes from any older log on disk, and its numbers start once a log appears.
+
 ## [0.1.0] - 2026-08-28
 
 ### Added

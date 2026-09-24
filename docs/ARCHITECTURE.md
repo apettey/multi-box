@@ -55,6 +55,13 @@ Probes candidate roots (including the OneDrive-redirected `Documents`), then gro
 `(characterId, channel)` and keeps the newest of each. EVE opens a new file on every session
 change, so "the current log" is always "the most recent per character".
 
+Logs are not the only source of characters. `MultiBoxSession.AddRunningClients` takes the
+names from open `EVE - <name>` windows and gives any pilot without a monitor one of its own, so
+a client that writes no logs still gets a card. Its id is looked up in this session's logs,
+then `CharacterIds` in the config, then any older gamelog banner on disk; failing all three it
+gets a stable negative placeholder, which is dropped as soon as a real log for that name
+turns up.
+
 ### Tailing — `LogTailer`
 
 Opens with `FileShare.ReadWrite | FileShare.Delete` — mandatory, because EVE holds a write
