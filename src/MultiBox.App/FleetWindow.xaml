@@ -499,6 +499,19 @@
                     <TextBlock Text="PELD + EVE-O · UNIFIED" Margin="10,0,0,0"
                                FontFamily="{StaticResource Mono}" FontSize="11"
                                Foreground="{x:Static local:Palette.TextMuted}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding VersionText}" Margin="10,0,0,0"
+                               FontFamily="{StaticResource Mono}" FontSize="11"
+                               Foreground="{x:Static local:Palette.TextFaint}" VerticalAlignment="Center"
+                               ToolTip="The version of MultiBox you are running"/>
+                    <Border Margin="10,0,0,0" CornerRadius="3" Padding="8,2" Cursor="Hand"
+                            BorderThickness="1" BorderBrush="{x:Static local:Palette.Success}"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding UpdateReady, Converter={StaticResource Show}}"
+                            MouseLeftButtonUp="RestartToUpdate_Click"
+                            ToolTip="An update has downloaded. Click to restart into it now, or it installs when you close MultiBox.">
+                        <TextBlock Text="{Binding UpdateText}" FontFamily="{StaticResource Mono}" FontSize="10"
+                                   Foreground="{x:Static local:Palette.Success}"/>
+                    </Border>
                     <TextBlock Text="{Binding Status}" Margin="16,0,0,0" FontFamily="{StaticResource Mono}"
                                FontSize="11" Foreground="{x:Static local:Palette.TextFaint}"
                                VerticalAlignment="Center" MaxWidth="420"

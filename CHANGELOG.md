@@ -165,6 +165,20 @@ screenshots current.
   EVE writes no game-log line when they are applied. The web *alert* fires only for a web the
   log actually reports.
 
+## [1.0.3] - 2026-09-24
+
+### Added
+
+- **The header shows which version you are running**, e.g. `v1.0.3`, next to the title.
+- **An update-ready chip.** Once an update has downloaded, a green `⬆ vX.Y.Z READY ·
+  RESTART` chip appears beside the version; clicking it restarts straight into the new
+  version. Left alone, the update still installs when MultiBox closes, as before.
+
+### Changed
+
+- **Updates are checked hourly instead of every six hours**, after the first check 30 seconds
+  from launch, so a release reaches a long-running session sooner.
+
 ## [1.0.2] - 2026-09-24
 
 ### Changed
