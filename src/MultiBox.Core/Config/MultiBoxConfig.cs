@@ -139,6 +139,9 @@ public sealed class MultiBoxConfig
     /// <summary>Character name -> ESI character id, filled by the ESI lookup step.</summary>
     public Dictionary<string, long> CharacterIds { get; set; } = new();
 
+    /// <summary>Copying one character's EVE window layout onto the others.</summary>
+    public SettingsSyncConfig SettingsSync { get; set; } = new();
+
     public Sz PanelSize { get; set; } = new(360, 190);
 
     private static Dictionary<string, AlertSetting> DefaultAlerts() => new()

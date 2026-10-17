@@ -155,6 +155,44 @@ public class EulaComplianceTests
     }
 
     /// <summary>
+    /// Writing files is an allow-list by source file, like the native surface. A new
+    /// File.Copy or File.WriteAllText anywhere else fails here, which keeps "what does this
+    /// program write?" answerable by reading the two files below.
+    /// </summary>
+    [Fact]
+    public void OnlyApprovedFilesWriteToDisk()
+    {
+        var approved = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            // MultiBox's own %APPDATA%\MultiBox\multibox.json.
+            ["MultiBoxConfig.cs"] = "writes the application's own config",
+
+            // Settings sync. Writes only core_char_<id>.dat inside a settings_<Profile> folder,
+            // as whole-file copies taken while no client is open, after zipping the originals
+            // to %APPDATA%\MultiBox\settings-backups. SettingsSyncTests proves it leaves every
+            // other file in the folder byte-for-byte alone. See docs/EULA-COMPLIANCE.md.
+            ["CharacterSettingsSync.cs"] = "copies one character's EVE layout over others",
+        };
+
+        var writes = new Regex(
+            @"\bFile\.(Copy|Move|Replace|Delete|Create|Write\w*|Append\w*|Open(Write)?)\s*\(" +
+            @"|\bDirectory\.(Delete|Move)\s*\(" +
+            @"|\bZipFile\.(Open|CreateFromDirectory|ExtractToDirectory)\s*\(" +
+            @"|\.ExtractToFile\s*\(",
+            RegexOptions.Compiled);
+
+        var offenders = ShippedSourceFiles()
+            .Where(path => !approved.ContainsKey(Path.GetFileName(path)))
+            .Where(path => writes.IsMatch(File.ReadAllText(path)))
+            .Select(path => Path.GetRelativePath(SampleLogs.Root, path))
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            $"File writes outside the approved set: {string.Join(", ", offenders)}. " +
+            "See docs/EULA-COMPLIANCE.md before widening what this program writes.");
+    }
+
+    /// <summary>
     /// The only network destination is CCP's public API. Anything else would mean log
     /// contents leaving the machine.
     /// </summary>

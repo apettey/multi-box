@@ -54,6 +54,36 @@ public static class EveClientLocator
         return results;
     }
 
+    /// <summary>
+    /// Every open EVE client, including ones still on the character-select screen. Settings
+    /// sync needs this rather than <see cref="FindClients"/>: a client sitting at character
+    /// select has no character in its title but can still write settings when it closes.
+    /// </summary>
+    public static int CountOpenClients()
+    {
+        var count = 0;
+
+        NativeMethods.EnumWindows((handle, _) =>
+        {
+            if (!NativeMethods.IsWindowVisible(handle))
+                return true;
+
+            var length = NativeMethods.GetWindowTextLength(handle);
+            if (length == 0)
+                return true;
+
+            var buffer = new StringBuilder(length + 1);
+            NativeMethods.GetWindowText(handle, buffer, buffer.Capacity);
+            var title = buffer.ToString();
+
+            if (title == "EVE" || title.StartsWith(TitlePrefix, StringComparison.Ordinal))
+                count++;
+            return true;
+        }, IntPtr.Zero);
+
+        return count;
+    }
+
     /// <summary>Character name of the client currently in the foreground, if any.</summary>
     public static string? ForegroundCharacter()
     {
