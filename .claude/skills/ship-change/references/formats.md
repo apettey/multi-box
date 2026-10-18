@@ -76,7 +76,8 @@ shared files untouched until the rebase right before `gh pr create`.
 | `description` | 1–3 sentences of plain text (no HTML), in the player's words: what it does and **where to find it**. `\n\n` starts a new paragraph. |
 | `images` | Optional, 1–2 `{ src, caption }`; the caption says where in the app the screenshot is. The file must exist. |
 
-Check it before pushing: `pwsh scripts/release/validate-announcements.ps1` (CI runs the same check).
+Check it before pushing, with `apettey/eve-contracts` checked out next to this repo: `python3
+../eve-contracts/scripts/versioning/validate_features.py` (CI runs the same shared check).
 
 ## PR body
 

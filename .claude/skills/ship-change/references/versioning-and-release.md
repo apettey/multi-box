@@ -3,7 +3,8 @@
 ## Every merge is a release
 
 SemVer `MAJOR.MINOR.PATCH`, tag `vX.Y.Z`, worked out automatically when a PR merges
-(`scripts/release/Release.psm1`, `Get-ChangeBump` / `Get-NextRelease`):
+by the versioning code shared with eve-contracts and hangarscope (the `next-version` action in `apettey/eve-contracts`,
+`scripts/versioning/bump.py` there; this repo has no copy, see "Shared code" below):
 
 1. A label wins: `semver:major`, `semver:minor` or `semver:patch` (with several labels, the biggest wins).
 2. Otherwise, a PR that adds an entry (a new `pr` number) to `whats-new/features.json` is **minor**; editing an
@@ -47,22 +48,36 @@ gh label create deploy:manual --color FBCA04 --description "Release as prereleas
 
 `.github/workflows/release.yml` runs on every push to `main`, one run at a time in merge order:
 
-1. **version**: `scripts/release/next-version.ps1` walks the first-parent commits since the latest `vX.Y.Z` tag,
-   looks up each one's merged PR (labels, title) and changed files, and outputs `version`, `tag`, `bump`, `reason`
-   and `prerelease`. Nothing new (only a bookkeeping commit) → no release. If a PR lookup fails, the job fails
-   rather than guess the labels (a missed `deploy:manual` would auto-update everyone). Runs only for `main`.
+1. **version**: the shared `next-version` action walks the first-parent commits since the newest *published*
+   `vX.Y.Z` tag in `main`'s history (its Release is not a draft and has the Velopack `-full.nupkg`), looks up each
+   one's merged PR (labels, title) and changed files, and outputs `release`, `finalize`, `version`, `tag`, `bump`,
+   `reason`, `prerelease` and the release `notes`. Nothing new (only a bookkeeping commit) → no release. If a PR
+   lookup fails, the job fails rather than guess the labels (a missed `deploy:manual` would auto-update everyone).
+   A commit that is already tagged reuses its tag (built only if its Release isn't published yet); a commit already
+   inside a later tag does nothing. Runs only for `main`.
 2. **build**: the shared `apettey/eve-contracts/.github/workflows/build-windows-app.yml` tests, publishes and
    Velopack-packs that version, **then** creates the tag on the built commit and publishes the GitHub Release
    (installer, delta packages, zip). A failed build leaves no tag, and if publishing fails before any Release exists
-   the tag is removed again, so every tag has a Release.
-3. **finalize**: `scripts/release/finalize.ps1` writes the Release notes (announcement entries, `changelog/` rows
-   added since the previous tag, every merged PR), then commits `Release vX.Y.Z: changelog and version` to `main`,
-   adding the version section to `CHANGELOG.md` and setting `<Version>` in the App csproj. It also runs when the
-   build is skipped because the Release already exists, so any re-run completes a missing finalize; it is
-   idempotent.
+   the tag is removed again, so every tag has a Release. It refuses to publish a version below one already released.
+3. **finalize**: the shared `finalize-release` action writes the Release notes (new announcement entries as
+   `- **Title.** text (#N)`, the `changelog/` rows added since the previous release with links pinned to the release
+   commit, every merged PR, the compare link), then commits `Release vX.Y.Z: changelog and version` to `main`,
+   adding the version section to `CHANGELOG.md` and raising `<Version>` in the App csproj. It also runs when the
+   build is skipped because the Release is already published, so any re-run completes a missing finalize; it is
+   idempotent. It fails if the Release is a draft or lacks the Velopack packages (no bookkeeping then) or the zip
+   (after the bookkeeping, since that version has shipped).
 
-Preview what finalize would write, without changing anything: `pwsh scripts/release/finalize.ps1 -Ref <sha> -Tag
-vX.Y.Z -DryRun`.
+Preview what a release would write, without changing anything: the dry-run commands in `docs/DEVELOPMENT.md`
+("Releasing").
+
+### Shared code
+
+The rules, the notes and the `CHANGELOG.md` bookkeeping are one implementation in `apettey/eve-contracts`
+(`scripts/versioning/`, Python, with the merged test suite of all three repos), exposed as composite actions called
+`@main`: `next-version` (release runs and the PR preview), `finalize-release` and `validate-features`. This repo's
+differences are inputs in `release.yml` and `ci.yml`: `bookkeeping-paths: CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj`,
+`app-name: MultiBox`, `announcement-notes: list`, and `changelog-file`, `version-file` and `branch: main` on
+finalize. Changing a rule is a PR in `apettey/eve-contracts`, and it changes all three apps' releases.
 
 ## Checking a release
 
@@ -85,13 +100,17 @@ The Release must list `MultiBox-win-Setup.exe`, the `.nupkg` and the zip. Report
 
 - **version failed** (usually a `gh` lookup error): `gh run rerun <id>`. Nothing was built or tagged.
 - **build failed before publishing** (tests, publish, pack, or the Velopack upload itself): no tag is left behind.
+  Re-running an old failed build after a newer version has shipped is safe: the shared build refuses the stale
+  version and tells you to start a fresh run (`gh workflow run release.yml --ref main`).
   Flaky (runner, network, quota): `gh run rerun <id>`. Code problem: fix it in a `fix/` PR; that merge's run picks
   up both changes, so they share one version. If the build log warns it could not remove the tag, delete it
   (`gh api -X DELETE repos/apettey/multi-box/git/refs/tags/vX.Y.Z`) before the next run.
 - **build failed after the Velopack Release was published** (e.g. the zip upload): the version has shipped and the tag
   stays. Don't re-run the failed build job (`vpk pack` would find the same version already released). Attach the
-  missing zip by hand from the run's artefacts, or leave it, then `gh run rerun <id>` (**all** jobs, not
-  `--failed`): the version job sees the Release, skips the build and runs finalize. Skipping this leaves the shipped
+  missing zip by hand from the run's artefacts, then `gh run rerun <id>` (**all** jobs, not
+  `--failed`): the version job sees the published Release, skips the build and runs finalize. Without the zip,
+  finalize still writes the notes and `CHANGELOG.md`, then fails to flag the missing zip (and keeps failing on
+  every re-run until the zip is attached). Skipping this leaves the shipped
   version with no `CHANGELOG.md` section and only GitHub's generated notes; the next merge's run won't add it.
 - **finalize failed**: the Release is out; only the notes and bookkeeping are missing. Re-run the run (failed jobs
   or all jobs both work: with the Release already there, the build is skipped and finalize runs).

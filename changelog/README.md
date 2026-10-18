@@ -9,4 +9,5 @@ players. Internal changes start with `Internal:`.
 
 | Date | Change | Summary |
 | --- | --- | --- |
+| 2026-10-18 | [Shared release versioning](2026-10-18-shared-versioning/README.md) | Internal: versioning, release notes and CHANGELOG.md now come from the release code shared with the other apps; same rules, nothing changes for players |
 | 2026-10-18 | [Ship-change process](2026-10-18-ship-change-process/README.md) | Internal: every merge to main is now released automatically; one process for tests, screenshots, release log and review |

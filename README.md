@@ -233,7 +233,7 @@ tests/                 xunit suite
 samples/               real logs captured from the clients
 docs/                  reference documentation
 changelog/             release log, one folder per change
-scripts/release/       automatic versioning and release notes
+scripts/               capture-window.ps1 (before/after screenshots)
 ```
 
 The core is deliberately portable so parsers can be developed and tested on any machine;

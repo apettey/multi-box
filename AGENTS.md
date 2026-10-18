@@ -25,7 +25,8 @@ six rules are blocking: a change missing any of them is not done.
    exception is Dependabot's PRs: CI doesn't require an entry, and they show up in the release
    notes by title.
 5. **Every merge is released.** Merging to `main` releases `vX.Y.Z` automatically
-   (`.github/workflows/release.yml`). There is no skip: docs, CI and dependency changes are a
+   (`.github/workflows/release.yml`, on the versioning code shared with eve-contracts and
+   hangarscope in `apettey/eve-contracts`; this repo has no copy). There is no skip: docs, CI and dependency changes are a
    patch. Merges landing while a release run is in progress share the next version. `semver:*`
    labels override the default, and `deploy:manual` holds the auto-update. Merge with a merge
    commit.

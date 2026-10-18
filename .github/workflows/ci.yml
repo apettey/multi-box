@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write # the "would release vX.Y.Z" comment
+      pull-requests: write # the "would release vX.Y.Z" comment (also reads unreleased merges' labels)
     steps:
       # The default ref is the PR merged into its base, so tests catch conflicts with main.
       - uses: actions/checkout@v7
@@ -35,13 +35,6 @@ jobs:
       - name: Build (all projects, Windows targeting)
         run: dotnet build MultiBox.sln -c Release --nologo -p:EnableWindowsTargeting=true
 
-      - name: Release-script tests (Pester)
-        shell: pwsh
-        run: |
-          Install-Module Pester -MinimumVersion 5.5 -Force -Scope CurrentUser -SkipPublisherCheck
-          $r = Invoke-Pester scripts/release/tests -PassThru -Output Detailed
-          if ($r.FailedCount -gt 0) { exit 1 }
-
       - name: Lint PowerShell scripts
         shell: pwsh
         run: |
@@ -56,9 +49,12 @@ jobs:
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
           ./actionlint -color
 
+      # The shared validator from apettey/eve-contracts (same code as eve-contracts and hangarscope).
       - name: Validate whats-new/features.json
-        shell: pwsh
-        run: ./scripts/release/validate-announcements.ps1
+        uses: apettey/eve-contracts/.github/actions/validate-features@main
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          pr: ${{ github.event.pull_request.number }}
 
       - name: Release-log entry present
         if: github.event.pull_request.user.login != 'dependabot[bot]'
@@ -72,20 +68,18 @@ jobs:
             exit 1
           fi
 
+      # The shared next-version action in PR mode: the same code as the release run, so the
+      # preview is what merging releases (the PR on top of any unreleased merges on main).
       - name: Version this PR would release
         id: preview
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ github.event.pull_request.number }}
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
-        run: |
-          $r = ./scripts/release/next-version.ps1 -PullRequest $env:PR -BaseRef "origin/$env:BASE_REF"
-          $pre = if ($r.Prerelease) { ' as a **prerelease** (`deploy:manual`: installed copies won''t update until it is promoted)' } else { '' }
-          $text = "Merging this PR would release **$($r.Tag)** ($($r.Bump): $($r.Reason))$pre."
-          "## Release preview`n`n$text" | Add-Content $env:GITHUB_STEP_SUMMARY
-          Write-Host "::notice::$($text -replace '\*\*', '')"
-          "text=$text" | Add-Content $env:GITHUB_OUTPUT
+        uses: apettey/eve-contracts/.github/actions/next-version@main
+        with:
+          mode: pr
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+          labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          bookkeeping-paths: CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj
+          app-name: MultiBox
 
       - name: Comment the release preview
         if: github.event.pull_request.head.repo.full_name == github.repository
@@ -93,7 +87,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
-          TEXT: ${{ steps.preview.outputs.text }}
+          TEXT: ${{ steps.preview.outputs.preview }}
         run: |
           body="<!-- release-preview -->
           $TEXT"

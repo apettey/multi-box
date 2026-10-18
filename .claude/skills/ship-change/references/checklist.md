@@ -9,7 +9,6 @@
 - [ ] Tests added/updated, against samples/ where possible (a failing test first for bug fixes)
 - [ ] Code: `dotnet test tests/MultiBox.Core.Tests/MultiBox.Core.Tests.csproj -c Release` passes locally
 - [ ] Code: `dotnet build MultiBox.sln -c Release` and `.\build.ps1 -SelfContained` succeed
-- [ ] scripts/release changed: `pwsh -c "Invoke-Pester scripts/release/tests"` passes
 - [ ] Code: tried in the running app against live clients, edge cases included (what wasn't exercised noted). Non-code: output checked, CI green
 - [ ] EULA boundary unchanged, or allow-list + EULA-COMPLIANCE.md + README updated with reasons
 - [ ] Docs updated where the change made them untrue
