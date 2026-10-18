@@ -9,9 +9,21 @@ This file is generated: every merge to `main` is released automatically, and the
 adds its version section here from the [`changelog/`](changelog/README.md) entries and
 announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.md).
 
-## [Unreleased]
+## [1.0.4] - 2026-10-18
 
-### Added
+### Changes
+
+- [Ship-change process](https://github.com/apettey/multi-box/blob/main/changelog/2026-10-18-ship-change-process/README.md): Internal: every merge to main is now released automatically; one process for tests, screenshots, release log and review
+
+### Pull requests
+
+- deps: Bump the nuget-minor-and-patch group with 3 updates (#15)
+- Settings sync: give every client the same EVE layout (#16)
+- Ship-change process: one way to build, review and release every change (#17)
+
+### Earlier, unversioned changes
+
+#### Added
 
 - **Settings sync (⧉ SYNC LAYOUT).** Copies one character's EVE settings — window positions,
   chat windows, overview — over your other characters, so every client opens with the same
@@ -84,7 +96,7 @@ announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.m
   both, and they call for opposite decisions.
 - `AGENTS.md` and this changelog.
 
-### Changed
+#### Changed
 
 - **Upgraded from .NET 8 to .NET 10** (`net10.0`, `net10.0-windows`). The self-contained
   build no longer requires a runtime install; the framework-dependent build now needs the
@@ -119,7 +131,7 @@ announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.m
   the same area holds four times as many. Rows now run top to bottom and then into the next
   column, so a wide card fills with history instead of whitespace.
 
-### Fixed
+#### Fixed
 
 - **The self-contained build crashed a few seconds after launch, without ever showing a
   window.** WPF's native libraries cannot be loaded from inside a single-file bundle, and
@@ -148,7 +160,7 @@ announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.m
   (27.5 to 28.2), and **all 148** were already older than both the ten-second stat window and
   the twelve-second EWAR hold by the time they could be read.
 
-### Security
+#### Security
 
 - **MultiBox now writes into EVE's settings folder**, for settings sync — the first time it
   writes any file it does not own. The boundary is narrow and enforced: only
@@ -172,7 +184,7 @@ announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.m
 - Every input-synthesis and memory-access API remains prohibited and enforced by
   `EulaComplianceTests`. Input broadcasting is still impossible.
 
-### Known limitations
+#### Known limitations
 
 - `CAP XFER` is **unverified against a captured log**. No file in `samples/` contains a
   capacitor transfer, because nobody in the recorded session flew a transmitter. The pattern
