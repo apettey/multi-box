@@ -6,33 +6,39 @@ claims, and the screenshots are all promises to a reader who cannot run the code
 
 ---
 
-## 1. Every change is recorded in the changelog
+## 1. Shipping changes
 
-`CHANGELOG.md` at the repo root is the record. It follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
-[Semantic Versioning](https://semver.org/).
+Every change follows the **`ship-change`** skill (`.claude/skills/ship-change/SKILL.md`). These
+six rules are blocking: a change missing any of them is not done.
 
-**Before committing any change to behaviour, features, dependencies or build,** add an entry
-under `## [Unreleased]` in the right group:
+1. **Tests are in place.** Every code change adds or updates tests for what it changes; the full
+   suite passes locally and in CI (section 6).
+2. **A review loop.** A fresh reviewer, a person or agent that did not write the change, reviews
+   the diff. Fix every finding and review again until a round has zero findings. The round count
+   goes in the PR body.
+3. **Screenshots.** Every visible change has a `before.png`, taken before the first edit, and an
+   `after.png` of the final version, both from the real app (section 3), stored with its
+   release-log entry and shown in the PR.
+4. **A release-log entry.** Every change, of any kind, adds
+   `changelog/YYYY-MM-DD-<short-name>/README.md` and a row at the top of `changelog/README.md`.
+   Visible changes also add an entry to `whats-new/features.json`, keyed by PR number.
+5. **Every merge is a new version.** Merging to `main` releases `vX.Y.Z` automatically
+   (`.github/workflows/release.yml`). There is no skip: docs, CI and dependency changes are a
+   patch. `semver:*` labels override the default, and `deploy:manual` holds the auto-update.
+6. **Release quickly.** Small PRs, merged the same day. Publishing the release is the deploy:
+   installed copies auto-update from it.
 
-| Group | Use for |
-|---|---|
-| `Added` | new features |
-| `Changed` | changes to existing behaviour |
-| `Deprecated` | features about to be removed |
-| `Removed` | features taken out |
-| `Fixed` | bug fixes |
-| `Security` | anything touching the EULA boundary or the native API surface |
+Write release-log summaries and announcements for the person running the app, not for the diff.
+"Fixed a crash on startup in the self-contained build" beats "added
+`IncludeNativeLibrariesForSelfExtract`". Put the mechanism in the second half of the sentence if
+it helps. Old entries are a log and are never rewritten; a change to an existing feature gets a
+new entry.
 
-Write entries for the person running the app, not for the diff. "Fixed a crash on startup in
-the self-contained build" beats "added `IncludeNativeLibrariesForSelfExtract`" — put the
-mechanism in the second half of the sentence if it helps.
+`CHANGELOG.md` is **generated**: the release job adds each version's section from the
+`changelog/` rows and announcements that went into it, and sets `<Version>` in the App csproj.
+Don't edit either by hand.
 
-Cutting a release means renaming `[Unreleased]` to `[x.y.z] - YYYY-MM-DD` and opening a fresh
-`[Unreleased]`. Git tags are `vX.Y.Z`.
-
-Changes that need **no** entry: typo fixes in comments, whitespace, reformatting, and edits
-to this file.
+If this file and the skill disagree, this file wins. Update both in the same PR.
 
 ## 2. Every change updates the documentation
 
@@ -51,11 +57,12 @@ for counts, version numbers and API lists that your change invalidates — `62 t
 
 ## 3. UI changes come with screenshots
 
-Any change to what the app looks like means regenerating the affected images in
-`docs/images/` and referencing them from the user guide.
+Two kinds of image, both captured from the **real app running against real clients**, never
+mocked, with `scripts/capture-window.ps1` at a fixed `-Size` on a single monitor:
 
-Screenshots are captured from the **real app running against real clients**, never mocked.
-Capture at the default window size on a single monitor. Current set:
+- **Before/after** for the change, in its `changelog/` folder (section 1, rule 3).
+- **User-guide images** in `docs/images/`, referenced from the user guide. Any change to what
+  the app looks like regenerates the affected ones. Current set:
 
 | File | View |
 |---|---|

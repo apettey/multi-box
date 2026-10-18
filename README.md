@@ -232,6 +232,8 @@ src/MultiBox.Replay/   console diagnostics                           (net10.0, p
 tests/                 xunit suite
 samples/               real logs captured from the clients
 docs/                  reference documentation
+changelog/             release log, one folder per change
+scripts/release/       automatic versioning and release notes
 ```
 
 The core is deliberately portable so parsers can be developed and tested on any machine;

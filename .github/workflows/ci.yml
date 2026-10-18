@@ -1,0 +1,119 @@
+# PR checks. Merging to main releases automatically (release.yml), so this is the gate.
+# See AGENTS.md section 1 and .claude/skills/ship-change.
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # the "would release vX.Y.Z" comment
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test
+        run: dotnet test tests/MultiBox.Core.Tests/MultiBox.Core.Tests.csproj -c Release --nologo
+
+      - name: Build (all projects, Windows targeting)
+        run: dotnet build MultiBox.sln -c Release --nologo -p:EnableWindowsTargeting=true
+
+      - name: Release-script tests (Pester)
+        shell: pwsh
+        run: |
+          Install-Module Pester -MinimumVersion 5.5 -Force -Scope CurrentUser -SkipPublisherCheck
+          $r = Invoke-Pester scripts/release/tests -PassThru -Output Detailed
+          if ($r.FailedCount -gt 0) { exit 1 }
+
+      - name: Lint PowerShell scripts
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+          $issues = Invoke-ScriptAnalyzer -Path scripts -Recurse -Severity Error,Warning `
+            -ExcludeRule PSAvoidUsingWriteHost,PSUseShouldProcessForStateChangingFunctions,PSUseSingularNouns
+          $issues | Format-Table -AutoSize | Out-String | Write-Host
+          if ($issues) { exit 1 }
+
+      - name: Lint workflows (actionlint)
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+          ./actionlint -color
+
+      - name: Validate whats-new/features.json
+        shell: pwsh
+        run: ./scripts/release/validate-announcements.ps1
+
+      - name: Release-log entry present
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if git diff --name-only --diff-filter=A "$BASE...HEAD" | grep -Eq '^changelog/[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]+/README\.md$'; then
+            echo "Release-log entry found."
+          else
+            echo "::error::Add changelog/YYYY-MM-DD-<name>/README.md (see .claude/skills/ship-change/references/formats.md)."
+            exit 1
+          fi
+
+      - name: Version this PR would release
+        id: preview
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          $r = ./scripts/release/next-version.ps1 -PullRequest $env:PR -BaseRef "origin/$env:BASE_REF"
+          $pre = if ($r.Prerelease) { ' as a **prerelease** (`deploy:manual`: installed copies won''t update until it is promoted)' } else { '' }
+          $text = "Merging this PR would release **$($r.Tag)** ($($r.Bump): $($r.Reason))$pre."
+          "## Release preview`n`n$text" | Add-Content $env:GITHUB_STEP_SUMMARY
+          Write-Host "::notice::$($text -replace '\*\*', '')"
+          "text=$text" | Add-Content $env:GITHUB_OUTPUT
+
+      - name: Comment the release preview
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          TEXT: ${{ steps.preview.outputs.text }}
+        run: |
+          body="<!-- release-preview -->
+          $TEXT"
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- release-preview -->")) | .id' | head -n1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" >/dev/null
+          else
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" >/dev/null
+          fi
+
+  # The Windows build, self-contained publish and Velopack pack, so the release artefact is
+  # proven before merge. Non-tag runs publish nothing; write is only there because the shared
+  # workflow's job declares it (a caller can't grant less). Fork PRs get a read-only token.
+  windows-build:
+    uses: apettey/eve-contracts/.github/workflows/build-windows-app.yml@main
+    permissions:
+      contents: write
+    with:
+      project: src/MultiBox.App/MultiBox.App.csproj
+      app-name: MultiBox
+      main-exe: MultiBox.exe
+      test-project: tests/MultiBox.Core.Tests/MultiBox.Core.Tests.csproj

@@ -5,8 +5,9 @@ All notable changes to MultiBox are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-See [AGENTS.md](AGENTS.md) for the rules on keeping this file, the documentation and the
-screenshots current.
+This file is generated: every merge to `main` is released automatically, and the release job
+adds its version section here from the [`changelog/`](changelog/README.md) entries and
+announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.md).
 
 ## [Unreleased]
 
