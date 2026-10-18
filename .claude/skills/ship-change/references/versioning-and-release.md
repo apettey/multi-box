@@ -14,7 +14,7 @@ by the versioning code shared with eve-contracts and hangarscope (the `next-vers
    direct pushes to `main`.
 4. Major is never automatic.
 5. Merges that land while a release run is in progress share the next version, with the biggest bump among them
-   (the newest pending run covers every merge since the last tag; an older pending run is superseded and shows as
+   (the newest pending run covers every merge since the last published tag; an older pending run is superseded and shows as
    cancelled). Merged one at a time, every merge is its own version.
 
 **No skip.** A docs-only PR still gets a patch release; every merge commit on `main` is in exactly one version and
@@ -107,7 +107,10 @@ The Release must list `MultiBox-win-Setup.exe`, the `.nupkg` and the zip. Report
   (`gh api -X DELETE repos/apettey/multi-box/git/refs/tags/vX.Y.Z`) before the next run.
 - **build failed after the Velopack Release was published** (e.g. the zip upload): the version has shipped and the tag
   stays. Don't re-run the failed build job (`vpk pack` would find the same version already released). Attach the
-  missing zip by hand from the run's artefacts, then `gh run rerun <id>` (**all** jobs, not
+  missing zip by hand (`gh release upload vX.Y.Z <zip>`) from the run's artefacts, which are kept 7 days; after that,
+  rebuild it from the tag (`git checkout vX.Y.Z`, `dotnet publish src/MultiBox.App/MultiBox.App.csproj -c Release -r
+  win-x64 --self-contained true -p:Version=X.Y.Z -o publish`, zip the folder's contents as
+  `MultiBox-X.Y.Z-win-x64.zip`). Then `gh run rerun <id>` (**all** jobs, not
   `--failed`): the version job sees the published Release, skips the build and runs finalize. Without the zip,
   finalize still writes the notes and `CHANGELOG.md`, then fails to flag the missing zip (and keeps failing on
   every re-run until the zip is attached). Skipping this leaves the shipped

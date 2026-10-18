@@ -74,10 +74,11 @@ shared files untouched until the rebase right before `gh pr create`.
 | `date` | `YYYY-MM-DD` |
 | `title` | The feature's name. |
 | `description` | 1–3 sentences of plain text (no HTML), in the player's words: what it does and **where to find it**. `\n\n` starts a new paragraph. |
-| `images` | Optional, 1–2 `{ src, caption }`; the caption says where in the app the screenshot is. The file must exist. |
+| `images` | Omit it, or 1–2 objects with exactly `src` and `caption`. `src` starts with `whats-new/img/` and the file must exist; the caption says where in the app the screenshot is. |
 
-Check it before pushing, with `apettey/eve-contracts` checked out next to this repo: `python3
-../eve-contracts/scripts/versioning/validate_features.py` (CI runs the same shared check).
+No other fields. CI checks all of this with the shared validator from `apettey/eve-contracts`, and also that every
+entry the PR adds uses its number. Check it before pushing, with `apettey/eve-contracts` checked out next to this
+repo: `python3 ../eve-contracts/scripts/versioning/validate_features.py --base-ref origin/main --pr <N>`.
 
 ## PR body
 

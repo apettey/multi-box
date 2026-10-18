@@ -50,10 +50,12 @@ jobs:
           ./actionlint -color
 
       # The shared validator from apettey/eve-contracts (same code as eve-contracts and hangarscope).
+      # HEAD is the PR merged into the current base, so HEAD^1 is that base (the event's
+      # base.sha can be stale on labeled/edited runs).
       - name: Validate whats-new/features.json
         uses: apettey/eve-contracts/.github/actions/validate-features@main
         with:
-          base: ${{ github.event.pull_request.base.sha }}
+          base: HEAD^1
           pr: ${{ github.event.pull_request.number }}
 
       - name: Release-log entry present
@@ -75,8 +77,8 @@ jobs:
         uses: apettey/eve-contracts/.github/actions/next-version@main
         with:
           mode: pr
-          base: ${{ github.event.pull_request.base.sha }}
-          head: ${{ github.event.pull_request.head.sha }}
+          base: HEAD^1
+          head: HEAD
           labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
           bookkeeping-paths: CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj
           app-name: MultiBox

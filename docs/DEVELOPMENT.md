@@ -180,12 +180,19 @@ on PRs from this repo. This repo has no copy of the release logic: it lives in
 there. To run it locally, with that repo checked out next to this one (read-only; `gh` lookups):
 
 ```bash
+# what main would release now (key=value lines; "release=false" when there is nothing new)
 python3 ../eve-contracts/scripts/versioning/bump.py release --repo apettey/multi-box --head origin/main \
   --bookkeeping-paths CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj --app-name MultiBox \
-  --announcement-notes list                                    # what main would release now, with notes
-python3 ../eve-contracts/scripts/versioning/finalize.py --repo apettey/multi-box --tag vX.Y.Z \
+  --announcement-notes list
+
+# the notes and CHANGELOG.md section for a release: use a commit with something to release
+# (or a tagged one, e.g. v1.0.4), cut the notes out of the output, then preview without changing anything
+python3 ../eve-contracts/scripts/versioning/bump.py release --repo apettey/multi-box --head v1.0.4 \
+  --bookkeeping-paths CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj --app-name MultiBox \
+  --announcement-notes list | awk '/^notes<</{f=1;next} /^EOF_NOTES_/{f=0} f' > notes.md
+python3 ../eve-contracts/scripts/versioning/finalize.py --repo apettey/multi-box --tag v1.0.4 \
   --notes-file notes.md --changelog-file CHANGELOG.md \
-  --version-file src/MultiBox.App/MultiBox.App.csproj --dry-run  # preview CHANGELOG.md, change nothing
+  --version-file src/MultiBox.App/MultiBox.App.csproj --dry-run
 ```
 
 Details, labels and failure handling:
