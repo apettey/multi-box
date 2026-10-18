@@ -73,11 +73,17 @@ Preview what a release would write, without changing anything: the dry-run comma
 ### Shared code
 
 The rules, the notes and the `CHANGELOG.md` bookkeeping are one implementation in `apettey/eve-contracts`
-(`scripts/versioning/`, Python, with the merged test suite of all three repos), exposed as composite actions called
-`@main`: `next-version` (release runs and the PR preview), `finalize-release` and `validate-features`. This repo's
+(`scripts/versioning/`, Python, with the merged test suite of all three repos), exposed as composite actions
+(pinned; see below): `next-version` (release runs and the PR preview), `finalize-release` and `validate-features`. This repo's
 differences are inputs in `release.yml` and `ci.yml`: `bookkeeping-paths: CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj`,
 `app-name: MultiBox`, `announcement-notes: list`, and `changelog-file`, `version-file` and `branch: main` on
-finalize. Changing a rule is a PR in `apettey/eve-contracts`, and it changes all three apps' releases.
+finalize. Changing a rule is a PR in `apettey/eve-contracts`, and it reaches this repo when the pin is bumped.
+
+**Pinned, not `@main`.** Every `uses: apettey/eve-contracts/...` line (the three actions and `build-windows-app.yml`)
+points at a full commit SHA with a `# vX.Y.Z` comment, so a push to eve-contracts can't change this repo's releases
+until a PR here moves the pin. Dependabot's weekly `github-actions` update opens that PR when eve-contracts releases a
+new version; review the eve-contracts changes it links, then merge. To pick up a shared change sooner, bump all the
+pins together by hand: `gh api repos/apettey/eve-contracts/commits/vX.Y.Z --jq .sha`.
 
 ## Checking a release
 
@@ -132,7 +138,7 @@ copies only pick up versions newer than their own.
 
 ## Notes
 
-- `build-windows-app.yml` lives in `apettey/eve-contracts` and is shared with eve-contracts and hangarscope (`@main`).
+- `build-windows-app.yml` lives in `apettey/eve-contracts` and is shared with eve-contracts and hangarscope (pinned by SHA, as above).
   The `version` / `release-tag` / `prerelease` inputs are optional; without them it behaves as before (tag-ref
   builds publish).
 - Tags created with `GITHUB_TOKEN` don't trigger workflows, which is why the build is called from `release.yml`
