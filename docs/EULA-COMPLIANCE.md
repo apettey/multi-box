@@ -186,7 +186,9 @@ log, and without it every read would throw. It grants MultiBox nothing.
 ### Writing EVE's settings files
 
 Settings sync copies one character's `core_char_<id>.dat` over other characters' files, so
-every client opens with the same window layout. This is the only place MultiBox writes into a
+every client opens with the same window layout. The copies can go into other
+`settings_<Profile>` folders the player ticks, because the launcher assigns profiles per
+account; the rules below apply identically in each. This is the only place MultiBox writes into a
 folder EVE owns, and it was added deliberately. It is the same thing players do by hand and
 tools such as EANM and EVE Settings Manager have done for years; the closest thing to an
 official position is CCP support telling players to back up and restore this folder by copying

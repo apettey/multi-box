@@ -55,21 +55,32 @@ public sealed class SettingsSyncService
         if (!Settings.AutoSync || !Settings.IsConfigured || Paused)
             return;
 
-        IReadOnlyList<CharacterSettingsFile> files;
+        DateTime newest;
         try
         {
-            files = EveSettingsLocator.CharacterFiles(Settings.ProfilePath!);
+            var files = EveSettingsLocator.CharacterFiles(Settings.ProfilePath!);
+            if (files.All(f => f.CharacterId != Settings.SourceCharacterId))
+                return;
+
+            // Any involved file in any profile: a layout changed on an alt in another
+            // profile is as much a reason to re-sync as one changed on the source.
+            var involved = Settings.TargetsAmong(files.Select(f => f.CharacterId)).Append(Settings.SourceCharacterId).ToHashSet();
+            newest = files.Where(f => involved.Contains(f.CharacterId)).Max(f => f.LastWriteUtc);
+
+            foreach (var other in Settings.OtherProfiles())
+            {
+                var otherFiles = EveSettingsLocator.CharacterFiles(other);
+                var targets = Settings.TargetsInOtherProfile(otherFiles.Select(f => f.CharacterId)).ToHashSet();
+                foreach (var file in otherFiles.Where(f => targets.Contains(f.CharacterId)))
+                    if (file.LastWriteUtc > newest)
+                        newest = file.LastWriteUtc;
+            }
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             return;
         }
 
-        if (files.All(f => f.CharacterId != Settings.SourceCharacterId))
-            return;
-
-        var involved = Settings.TargetsAmong(files.Select(f => f.CharacterId)).Append(Settings.SourceCharacterId).ToHashSet();
-        var newest = files.Where(f => involved.Contains(f.CharacterId)).Max(f => f.LastWriteUtc);
         if (newest == _failedOn)
             return;
 
@@ -87,7 +98,11 @@ public sealed class SettingsSyncService
         }
     }
 
-    /// <summary>Copies the source layout over every target. Refuses while any client is open.</summary>
+    /// <summary>
+    /// Copies the source layout over every target in the main profile and in each "also apply
+    /// to" profile. Refuses while any client is open. Every profile touched is backed up under
+    /// one batch, so RESTORE LAST BACKUP undoes the whole sync.
+    /// </summary>
     public SyncResult SyncNow(bool automatic = false)
     {
         if (!Settings.IsConfigured)
@@ -99,8 +114,25 @@ public sealed class SettingsSyncService
                 "Close every EVE client first - a running client writes its own settings back when it logs out.");
 
         var profile = Settings.ProfilePath!;
+        var sync = CreateSync();
+        var batch = Guid.NewGuid();
+
         var available = EveSettingsLocator.CharacterFiles(profile).Select(f => f.CharacterId);
-        var result = CreateSync().Apply(profile, Settings.SourceCharacterId, Settings.TargetsAmong(available));
+        var main = sync.Apply(profile, Settings.SourceCharacterId, Settings.TargetsAmong(available), batch);
+
+        var copied = main.Copied.ToList();
+        var profiles = main.Copied.Count > 0 ? 1 : 0;
+        foreach (var other in Settings.OtherProfiles().Where(Directory.Exists))
+        {
+            var there = EveSettingsLocator.CharacterFiles(other).Select(f => f.CharacterId);
+            var applied = sync.Apply(profile, Settings.SourceCharacterId, other,
+                Settings.TargetsInOtherProfile(there), batch);
+            copied.AddRange(applied.Copied);
+            if (applied.Copied.Count > 0)
+                profiles++;
+        }
+
+        var result = new SyncResult(main.BackupPath, copied);
 
         Settings.LastSyncUtc = DateTime.UtcNow;
         _failedOn = null;
@@ -109,7 +141,7 @@ public sealed class SettingsSyncService
         var how = automatic ? "after the last client closed" : "on request";
         Synced?.Invoke(result.Copied.Count == 0
             ? $"Settings sync {how}: nothing to copy."
-            : $"Synced layout to {result.Copied.Count} character(s) {how}.");
+            : $"Synced layout to {result.Copied.Count} character file(s) in {profiles} profile(s) {how}.");
         return result;
     }
 }

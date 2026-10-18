@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:MultiBox.App"
         Title="Settings Sync — EVE window layout"
-        Width="820" Height="680"
+        Width="860" Height="820"
         WindowStartupLocation="CenterOwner"
         Background="{x:Static local:Palette.Panel}"
         TextOptions.TextFormattingMode="Display"
@@ -71,8 +71,42 @@
                            FontFamily="{StaticResource Mono}" FontSize="9"
                            Foreground="{x:Static local:Palette.TextMuted}"/>
                 <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}"
-                          SelectedItem="{Binding SelectedProfile}" DisplayMemberPath="DisplayName"
+                          SelectedItem="{Binding SelectedProfile}" DisplayMemberPath="Label"
                           FontFamily="{StaticResource Mono}" FontSize="11"/>
+            </Grid>
+
+            <!-- The launcher assigns a profile per account, so one fleet can read its settings
+                 from several folders. Ticking one copies the source layout into it too. -->
+            <Grid Margin="0,10,0,0">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasOtherProfiles}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="ALSO APPLY TO" VerticalAlignment="Top" Width="76" Margin="0,2,0,0"
+                           TextWrapping="Wrap" FontFamily="{StaticResource Mono}" FontSize="9"
+                           Foreground="{x:Static local:Palette.TextMuted}"/>
+                <StackPanel Grid.Column="1">
+                    <ItemsControl ItemsSource="{Binding OtherProfiles}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Margin="0,0,0,3" Content="{Binding Label}" IsChecked="{Binding IsChecked}"
+                                          FontFamily="{StaticResource Mono}" FontSize="10"
+                                          Foreground="{x:Static local:Palette.TextSecondary}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Margin="0,3,0,0" TextWrapping="Wrap" FontFamily="{StaticResource Mono}" FontSize="9"
+                               Foreground="{x:Static local:Palette.Gold}" Text="{Binding AlsoApplySummary}"/>
+                </StackPanel>
             </Grid>
 
             <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontFamily="{StaticResource Mono}" FontSize="10"

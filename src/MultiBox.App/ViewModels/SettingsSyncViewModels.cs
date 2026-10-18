@@ -27,27 +27,36 @@ public sealed class SettingsSyncViewModel : ObservableObject
             if (id > 0)
                 _names[id] = name;
 
-        foreach (var profile in EveSettingsLocator.FindProfiles())
-            Profiles.Add(profile);
+        // Most recently written first: a client rewrites its profile's files at every logout,
+        // so the top of the list is the profile the launcher is actually using.
+        foreach (var profile in EveSettingsLocator.FindProfiles()
+                     .OrderByDescending(p => p.LastWriteUtc ?? DateTime.MinValue))
+            Profiles.Add(new ProfileOptionViewModel(profile));
 
         _selectedProfile = Profiles.FirstOrDefault(p => p.Path.Equals(Settings.ProfilePath, StringComparison.OrdinalIgnoreCase))
                            ?? Profiles.FirstOrDefault();
         if (_selectedProfile is not null)
             Settings.ProfilePath = _selectedProfile.Path;
 
+        LoadOtherProfiles();
         LoadRows();
         RefreshClients();
     }
 
     private SettingsSyncConfig Settings => _config.SettingsSync;
 
-    public ObservableCollection<SettingsProfile> Profiles { get; } = new();
+    public ObservableCollection<ProfileOptionViewModel> Profiles { get; } = new();
+
+    /// <summary>Every profile except the selected one, each with an "also apply" tick.</summary>
+    public ObservableCollection<AlsoApplyProfileViewModel> OtherProfiles { get; } = new();
+
+    public bool HasOtherProfiles => OtherProfiles.Count > 0;
     public ObservableCollection<SettingsSyncRowViewModel> Rows { get; } = new();
 
     public bool HasProfiles => Profiles.Count > 0;
 
-    private SettingsProfile? _selectedProfile;
-    public SettingsProfile? SelectedProfile
+    private ProfileOptionViewModel? _selectedProfile;
+    public ProfileOptionViewModel? SelectedProfile
     {
         get => _selectedProfile;
         set
@@ -60,6 +69,8 @@ public sealed class SettingsSyncViewModel : ObservableObject
             Settings.ProfilePath = value.Path;
             Settings.SourceCharacterId = 0;
             Settings.ExcludedCharacterIds.Clear();
+            Settings.AlsoApplyToProfilePaths.RemoveAll(p => p.Equals(value.Path, StringComparison.OrdinalIgnoreCase));
+            LoadOtherProfiles();
             LoadRows();
         }
     }
@@ -78,7 +89,46 @@ public sealed class SettingsSyncViewModel : ObservableObject
     private Brush _clientsBrush = Palette.TextMuted;
     public Brush ClientsBrush { get => _clientsBrush; private set => Set(ref _clientsBrush, value); }
 
-    public bool CanSync => _openClients == 0 && Settings.IsConfigured && Rows.Any(r => r.IsTarget);
+    public bool CanSync => _openClients == 0 && Settings.IsConfigured &&
+                           (Rows.Any(r => r.IsTarget) || OtherProfiles.Any(p => p.IsChecked));
+
+    /// <summary>How many more files the ticked profiles add, so the reach of a sync is visible.</summary>
+    public string AlsoApplySummary
+    {
+        get
+        {
+            var ticked = OtherProfiles.Where(p => p.IsChecked).ToList();
+            if (ticked.Count == 0)
+                return "Only the profile above is changed.";
+
+            var files = ticked.Sum(p => Settings.TargetsInOtherProfile(
+                EveSettingsLocator.CharacterFiles(p.Path).Select(f => f.CharacterId)).Count);
+            return $"Also overwrites {files} character file(s) in {ticked.Count} other profile(s), " +
+                   "including the source character's own copy there. Unticked characters are left alone in every profile.";
+        }
+    }
+
+    private void LoadOtherProfiles()
+    {
+        OtherProfiles.Clear();
+        foreach (var option in Profiles.Where(p => p != _selectedProfile))
+        {
+            var row = new AlsoApplyProfileViewModel(option,
+                Settings.AlsoApplyToProfilePaths.Contains(option.Path, StringComparer.OrdinalIgnoreCase));
+            row.Changed += OnAlsoApplyChanged;
+            OtherProfiles.Add(row);
+        }
+
+        Raise(nameof(HasOtherProfiles));
+        Raise(nameof(AlsoApplySummary));
+    }
+
+    private void OnAlsoApplyChanged()
+    {
+        Settings.AlsoApplyToProfilePaths = OtherProfiles.Where(p => p.IsChecked).Select(p => p.Path).ToList();
+        Raise(nameof(AlsoApplySummary));
+        Raise(nameof(CanSync));
+    }
 
     public string LastSyncText => Settings.LastSyncUtc is { } last
         ? "Last synced " + last.ToLocalTime().ToString("ddd d MMM HH:mm")
@@ -148,6 +198,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
         foreach (var r in Rows)
             r.Refresh();
         Raise(nameof(CanSync));
+        Raise(nameof(AlsoApplySummary));
     }
 
     /// <summary>
@@ -188,18 +239,29 @@ public sealed class SettingsSyncViewModel : ObservableObject
             var result = _service.SyncNow();
             Message = result.Copied.Count == 0
                 ? "Nothing to copy."
-                : $"Copied {NameFor(Settings.SourceCharacterId)}'s layout to {result.Copied.Count} character(s). The originals are backed up.";
+                : $"Copied {NameFor(Settings.SourceCharacterId)}'s layout to {result.Copied.Count} character file(s). The originals are backed up.";
         }
         catch (Exception e)
         {
             Message = e.Message;
         }
 
+        RefreshProfiles();
         LoadRows();
         Raise(nameof(LastSyncText));
     }
 
-    /// <summary>Puts back the files from before the most recent sync of this profile.</summary>
+    /// <summary>Write times move after a sync or restore, and the labels show them.</summary>
+    private void RefreshProfiles()
+    {
+        var fresh = EveSettingsLocator.FindProfiles().ToDictionary(p => p.Path, StringComparer.OrdinalIgnoreCase);
+        foreach (var option in Profiles)
+            if (fresh.TryGetValue(option.Path, out var profile))
+                option.Update(profile);
+        Raise(nameof(AlsoApplySummary));
+    }
+
+    /// <summary>Puts back every profile the most recent sync touched, as it was before.</summary>
     public void RestoreLatest()
     {
         if (_selectedProfile is null)
@@ -212,25 +274,95 @@ public sealed class SettingsSyncViewModel : ObservableObject
         }
 
         var sync = _service.CreateSync();
-        var backup = sync.ListBackups().FirstOrDefault(b =>
-            b.ProfilePath.Equals(_selectedProfile.Path, StringComparison.OrdinalIgnoreCase));
-        if (backup is null)
+        var batch = sync.LatestBatch(Settings.OtherProfiles().Append(_selectedProfile.Path));
+        if (batch.Count == 0)
         {
-            Message = "No backup of this profile yet — one is taken before every sync.";
+            Message = "No backup of these profiles yet — one is taken before every sync.";
             return;
         }
 
         try
         {
-            var restored = sync.Restore(backup);
-            Message = $"Restored {restored} character file(s) from {backup.CreatedUtc.ToLocalTime():ddd d MMM HH:mm}.";
+            var restored = batch.Sum(sync.Restore);
+            Message = $"Restored {restored} character file(s) in {batch.Count} profile(s) from " +
+                      $"{batch.Max(b => b.CreatedUtc).ToLocalTime():ddd d MMM HH:mm}.";
         }
         catch (Exception e)
         {
             Message = "Restore failed: " + e.Message;
         }
 
+        RefreshProfiles();
         LoadRows();
+    }
+}
+
+/// <summary>A settings profile as the picker shows it: name, size and when it was last written.</summary>
+public sealed class ProfileOptionViewModel : ObservableObject
+{
+    private SettingsProfile _profile;
+
+    public ProfileOptionViewModel(SettingsProfile profile) => _profile = profile;
+
+    public string Path => _profile.Path;
+
+    /// <summary>"Split_Screen · 12 character(s) · last written today 21:00".</summary>
+    public string Label
+    {
+        get
+        {
+            var written = _profile.LastWriteUtc is { } utc ? "last written " + When(utc.ToLocalTime()) : "never used";
+            return $"{_profile.Name}  ·  {_profile.CharacterCount} character(s)  ·  {written}";
+        }
+    }
+
+    public void Update(SettingsProfile profile)
+    {
+        _profile = profile;
+        Raise(nameof(Label));
+    }
+
+    public override string ToString() => Label;
+
+    private static string When(DateTime local)
+    {
+        var days = (DateTime.Today - local.Date).Days;
+        return days switch
+        {
+            0 => "today " + local.ToString("HH:mm"),
+            1 => "yesterday " + local.ToString("HH:mm"),
+            < 300 => local.ToString("d MMM HH:mm"),
+            _ => local.ToString("d MMM yyyy")
+        };
+    }
+}
+
+/// <summary>Another profile that can also receive the source layout.</summary>
+public sealed class AlsoApplyProfileViewModel : ObservableObject
+{
+    private readonly ProfileOptionViewModel _option;
+
+    public AlsoApplyProfileViewModel(ProfileOptionViewModel option, bool isChecked)
+    {
+        _option = option;
+        _isChecked = isChecked;
+        _option.PropertyChanged += (_, _) => Raise(nameof(Label));
+    }
+
+    public event Action? Changed;
+
+    public string Path => _option.Path;
+    public string Label => _option.Label;
+
+    private bool _isChecked;
+    public bool IsChecked
+    {
+        get => _isChecked;
+        set
+        {
+            if (Set(ref _isChecked, value))
+                Changed?.Invoke();
+        }
     }
 }
 

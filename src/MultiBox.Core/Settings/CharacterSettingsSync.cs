@@ -9,8 +9,12 @@ public sealed record SyncResult(string? BackupPath, IReadOnlyList<long> Copied)
     public static readonly SyncResult Nothing = new(null, Array.Empty<long>());
 }
 
-/// <summary>One zip of a profile's character files, taken before a sync overwrote them.</summary>
-public sealed record SettingsBackup(string Path, string ProfilePath, DateTime CreatedUtc, int FileCount);
+/// <summary>
+/// One zip of a profile's character files, taken before a sync overwrote them. A sync that
+/// spans several profiles takes one zip per profile, all sharing a <see cref="BatchId"/>, so
+/// they can be restored together.
+/// </summary>
+public sealed record SettingsBackup(string Path, string ProfilePath, DateTime CreatedUtc, int FileCount, Guid? BatchId = null);
 
 /// <summary>
 /// Copies one character's settings file over others in the same profile, so every client opens
@@ -51,27 +55,37 @@ public sealed class CharacterSettingsSync
     /// Overwrites each target's file with the source's. Targets without a file, and the source
     /// itself, are skipped. Nothing is backed up or written when there is nothing to copy.
     /// </summary>
-    public SyncResult Apply(string profilePath, long sourceId, IEnumerable<long> targetIds)
+    public SyncResult Apply(string profilePath, long sourceId, IEnumerable<long> targetIds, Guid? batchId = null) =>
+        Apply(profilePath, sourceId, profilePath, targetIds, batchId);
+
+    /// <summary>
+    /// Copies the source character's file from <paramref name="sourceProfile"/> over each
+    /// target's file in <paramref name="targetProfile"/>. When the two differ the source
+    /// character's own file in the target profile is a valid target too.
+    /// </summary>
+    public SyncResult Apply(string sourceProfile, long sourceId, string targetProfile,
+        IEnumerable<long> targetIds, Guid? batchId = null)
     {
-        var source = CharacterFilePath(profilePath, sourceId);
+        var source = CharacterFilePath(sourceProfile, sourceId);
         if (!File.Exists(source))
             throw new FileNotFoundException("The source character has no settings file in this profile.", source);
 
+        var sameProfile = Path.GetFullPath(sourceProfile).Equals(Path.GetFullPath(targetProfile), StringComparison.OrdinalIgnoreCase);
         var targets = targetIds
-            .Where(id => id != sourceId)
+            .Where(id => !sameProfile || id != sourceId)
             .Distinct()
-            .Where(id => File.Exists(CharacterFilePath(profilePath, id)))
+            .Where(id => File.Exists(CharacterFilePath(targetProfile, id)))
             .ToList();
 
         if (targets.Count == 0)
             return SyncResult.Nothing;
 
-        var backup = Backup(profilePath);
+        var backup = Backup(targetProfile, batchId);
 
         var copied = new List<long>();
         foreach (var id in targets)
         {
-            var target = CharacterFilePath(profilePath, id);
+            var target = CharacterFilePath(targetProfile, id);
             var temp = target + TempSuffix;
             try
             {
@@ -93,13 +107,15 @@ public sealed class CharacterSettingsSync
     }
 
     /// <summary>Zips every character file in the profile into the backup folder.</summary>
-    public string Backup(string profilePath)
+    public string Backup(string profilePath, Guid? batchId = null)
     {
         Directory.CreateDirectory(_backupRoot);
 
         var created = DateTime.UtcNow;
         var profileName = Path.GetFileName(Path.TrimEndingDirectorySeparator(profilePath));
-        var path = Path.Combine(_backupRoot, $"{created:yyyyMMdd-HHmmss-fff}_{Sanitise(profileName)}.zip");
+        // The random tail keeps two profiles backed up in the same millisecond apart.
+        var tail = Guid.NewGuid().ToString("N")[..6];
+        var path = Path.Combine(_backupRoot, $"{created:yyyyMMdd-HHmmss-fff}_{Sanitise(profileName)}_{tail}.zip");
 
         var files = EveSettingsLocator.CharacterFiles(profilePath);
         using (var zip = ZipFile.Open(path, ZipArchiveMode.Create))
@@ -109,7 +125,7 @@ public sealed class CharacterSettingsSync
 
             var manifest = zip.CreateEntry(ManifestEntry);
             using var stream = manifest.Open();
-            JsonSerializer.Serialize(stream, new Manifest(profilePath, created, files.Count));
+            JsonSerializer.Serialize(stream, new Manifest(profilePath, created, files.Count, batchId));
         }
 
         return path;
@@ -126,7 +142,7 @@ public sealed class CharacterSettingsSync
         {
             var manifest = TryReadManifest(path);
             if (manifest is not null)
-                backups.Add(new SettingsBackup(path, manifest.ProfilePath, manifest.CreatedUtc, manifest.FileCount));
+                backups.Add(new SettingsBackup(path, manifest.ProfilePath, manifest.CreatedUtc, manifest.FileCount, manifest.BatchId));
         }
 
         return backups.OrderByDescending(b => b.CreatedUtc).ToList();
@@ -168,6 +184,23 @@ public sealed class CharacterSettingsSync
         return restored;
     }
 
+    /// <summary>
+    /// The backups taken by the most recent sync touching any of <paramref name="profilePaths"/>:
+    /// every profile it covered, so restoring puts the whole sync back rather than one folder.
+    /// </summary>
+    public IReadOnlyList<SettingsBackup> LatestBatch(IEnumerable<string> profilePaths)
+    {
+        var wanted = profilePaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var all = ListBackups();
+        var newest = all.FirstOrDefault(b => wanted.Contains(b.ProfilePath));
+        if (newest is null)
+            return Array.Empty<SettingsBackup>();
+
+        return newest.BatchId is { } batch
+            ? all.Where(b => b.BatchId == batch).ToList()
+            : new[] { newest };
+    }
+
     /// <summary>The only shape of path this class ever writes to.</summary>
     public static string CharacterFilePath(string profilePath, long characterId)
     {
@@ -178,8 +211,14 @@ public sealed class CharacterSettingsSync
 
     private void Prune()
     {
-        // Only zips this class wrote (they carry a manifest) are candidates for deletion.
-        foreach (var old in ListBackups().Skip(_keepBackups))
+        // Only zips this class wrote (they carry a manifest) are candidates for deletion. The
+        // limit counts syncs, not zips, so a sync across three profiles is never half-kept.
+        var stale = ListBackups()
+            .GroupBy(b => b.BatchId?.ToString() ?? b.Path)
+            .OrderByDescending(g => g.Max(b => b.CreatedUtc))
+            .Skip(_keepBackups)
+            .SelectMany(g => g);
+        foreach (var old in stale)
             File.Delete(old.Path);
     }
 
@@ -203,5 +242,5 @@ public sealed class CharacterSettingsSync
     private static string Sanitise(string name) =>
         string.Concat(name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
 
-    private sealed record Manifest(string ProfilePath, DateTime CreatedUtc, int FileCount);
+    private sealed record Manifest(string ProfilePath, DateTime CreatedUtc, int FileCount, Guid? BatchId = null);
 }

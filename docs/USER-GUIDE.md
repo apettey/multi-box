@@ -219,13 +219,19 @@ MultiBox, and it knows your pilots by name because it already reads their logs.
 
 Open it with `⧉ SYNC LAYOUT`:
 
-1. **PROFILE** — the EVE settings profile your clients launch with, usually `Default`. If you
-   use launcher profiles, pick the one your accounts are set to.
-2. **Source** — the character whose layout everyone gets. It defaults to whoever played most
+1. **PROFILE** — the EVE settings profile the source character launches with. Each entry
+   shows how many characters it holds and when a client last wrote to it, newest first, so
+   the profile you are actually playing on is normally at the top.
+2. **ALSO APPLY TO** — tick any other profile your accounts launch with. The launcher picks a
+   profile per account, so a fleet can be split across several. Every character file in a
+   ticked profile gets the source layout, including the source character's own copy there.
+   The gold line underneath says how many files that adds.
+3. **Source** — the character whose layout everyone gets. It defaults to whoever played most
    recently.
-3. **Sync** — untick a character to leave its layout alone. A new alt is included
-   automatically the first time it logs in.
-4. **SYNC NOW** — copies the source over every character marked `WILL BE OVERWRITTEN`.
+4. **Sync** — untick a character to leave its layout alone, in every profile. A new alt is
+   included automatically the first time it logs in.
+5. **SYNC NOW** — copies the source over every character marked `WILL BE OVERWRITTEN`, and
+   over every character in the ticked profiles.
 
 **Every client has to be closed.** EVE keeps its settings in memory while it runs and writes
 them back when you log out, so anything copied under a running client is undone. The window
@@ -238,9 +244,10 @@ one goes MultiBox copies the layout across. The next time you launch, from the E
 usual, every character opens with it. MultiBox does not launch EVE, and does not need to: the
 files are already in place. The dashboard's status line reports each automatic sync.
 
-**Backups.** Before every sync, all the character files in the profile are zipped to
-`%APPDATA%\MultiBox\settings-backups` (the newest ten are kept). **RESTORE LAST BACKUP**
-puts back the files from before the most recent sync, again only while every client is closed.
+**Backups.** Before every sync, all the character files in each profile it touches are zipped
+to `%APPDATA%\MultiBox\settings-backups` (the newest ten syncs are kept). **RESTORE LAST
+BACKUP** puts back every profile the most recent sync changed, again only while every client
+is closed.
 
 What it copies and what it does not:
 
@@ -248,8 +255,11 @@ What it copies and what it does not:
   overview and other per-character UI settings.
 - **Not copied:** `core_user_<id>.dat` — per account: graphics, audio and other account-wide
   settings. These also carry hardware-specific values, so they are left alone for now.
-- A character only gets a layout if it has logged in at least once in that profile, because
-  that is when EVE creates its file.
+- A character only gets a layout in a profile if it has logged in at least once with that
+  profile, because that is when EVE creates its file there.
+- MultiBox cannot read which profile the launcher assigns to each account; the write times in
+  the picker are the hint. Ticking a profile nobody launches with does no harm, it just
+  changes files no client reads.
 
 ---
 

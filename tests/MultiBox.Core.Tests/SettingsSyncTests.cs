@@ -151,6 +151,101 @@ public sealed class SettingsSyncTests : IDisposable
         Assert.Equal(2, sync.ListBackups().Count);
     }
 
+    private string MakeProfile(string name, params (long Id, string Content)[] files)
+    {
+        var path = Path.Combine(_root, "CCP", "EVE", "c_eve_sharedcache_tq_tranquility", "settings_" + name);
+        Directory.CreateDirectory(path);
+        foreach (var (id, content) in files)
+            File.WriteAllText(Path.Combine(path, Char(id)), content);
+        return path;
+    }
+
+    [Fact]
+    public void ReportsEachProfilesCharacterCountAndNewestWrite()
+    {
+        var split = MakeProfile("Split_Screen", (Major, "split major"));
+        var newest = new DateTime(2026, 10, 17, 21, 0, 0, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(Path.Combine(split, Char(Major)), newest);
+        MakeProfile("NewProfile");
+
+        var profiles = EveSettingsLocator.FindProfiles(Path.Combine(_root, "CCP", "EVE"))
+            .ToDictionary(p => p.Name);
+
+        Assert.Equal(3, profiles["Default"].CharacterCount);
+        Assert.Equal(newest, profiles["Split_Screen"].LastWriteUtc);
+        Assert.Equal(0, profiles["NewProfile"].CharacterCount);
+        Assert.Null(profiles["NewProfile"].LastWriteUtc);
+    }
+
+    [Fact]
+    public void AppliesTheSourceLayoutIntoAnotherProfileIncludingTheSourcesOwnCopy()
+    {
+        var split = MakeProfile("Split_Screen", (Commander, "old commander"), (Major, "old major"));
+
+        var result = new CharacterSettingsSync(_backups)
+            .Apply(_profile, Commander, split, new[] { Commander, Major, Lieutenant });
+
+        // Lieutenant has never logged in under Split_Screen, so it gets no file there.
+        Assert.Equal(new[] { Commander, Major }, result.Copied);
+        Assert.Equal("commander layout", File.ReadAllText(Path.Combine(split, Char(Commander))));
+        Assert.Equal("commander layout", File.ReadAllText(Path.Combine(split, Char(Major))));
+        Assert.False(File.Exists(Path.Combine(split, Char(Lieutenant))));
+        Assert.Equal("major layout", Read(Char(Major)));
+    }
+
+    [Fact]
+    public void OtherProfileTargetsKeepExclusionsButIncludeTheSource()
+    {
+        var config = new SettingsSyncConfig
+        {
+            ProfilePath = _profile,
+            SourceCharacterId = Commander,
+            ExcludedCharacterIds = { Lieutenant },
+            AlsoApplyToProfilePaths = { _profile, @"C:\b", @"c:\B", "" }
+        };
+
+        Assert.Equal(new[] { Commander, Major }, config.TargetsInOtherProfile(new[] { Commander, Major, Lieutenant }));
+        Assert.Equal(new[] { @"C:\b" }, config.OtherProfiles());
+    }
+
+    [Fact]
+    public void RestoresEveryProfileASyncTouched()
+    {
+        var split = MakeProfile("Split_Screen", (Major, "split major"));
+        var sync = new CharacterSettingsSync(_backups);
+        var batch = Guid.NewGuid();
+
+        sync.Apply(_profile, Commander, new[] { Major }, batch);
+        sync.Apply(_profile, Commander, split, new[] { Major }, batch);
+
+        var backups = sync.LatestBatch(new[] { split });
+        Assert.Equal(2, backups.Count);
+        foreach (var backup in backups)
+            sync.Restore(backup);
+
+        Assert.Equal("major layout", Read(Char(Major)));
+        Assert.Equal("split major", File.ReadAllText(Path.Combine(split, Char(Major))));
+    }
+
+    [Fact]
+    public void KeepsBackupsBySyncRatherThanByZip()
+    {
+        var split = MakeProfile("Split_Screen", (Major, "split major"));
+        var sync = new CharacterSettingsSync(_backups, keepBackups: 1);
+
+        for (var i = 0; i < 3; i++)
+        {
+            var batch = Guid.NewGuid();
+            sync.Apply(_profile, Commander, new[] { Major }, batch);
+            sync.Apply(_profile, Commander, split, new[] { Major }, batch);
+            Thread.Sleep(5);
+        }
+
+        var left = sync.ListBackups();
+        Assert.Equal(2, left.Count);
+        Assert.Single(left.Select(b => b.BatchId).Distinct());
+    }
+
     [Fact]
     public void ExclusionsAndTheSourceAreNeverTargets()
     {

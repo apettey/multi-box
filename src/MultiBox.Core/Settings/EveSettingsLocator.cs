@@ -7,7 +7,8 @@ namespace MultiBox.Core.Settings;
 /// points the client at. Every character and account that launches with this profile reads
 /// and writes its files here.
 /// </summary>
-public sealed record SettingsProfile(string ServerFolder, string Name, string Path)
+public sealed record SettingsProfile(string ServerFolder, string Name, string Path,
+    int CharacterCount = 0, DateTime? LastWriteUtc = null)
 {
     /// <summary>"c_eve_sharedcache_tq_tranquility / Default" - enough to tell two installs apart.</summary>
     public string DisplayName => $"{ServerFolder} / {Name}";
@@ -58,8 +59,14 @@ public static class EveSettingsLocator
             foreach (var profile in Directory.EnumerateDirectories(server, "settings_*"))
             {
                 var name = System.IO.Path.GetFileName(profile)["settings_".Length..];
-                if (name.Length > 0)
-                    profiles.Add(new SettingsProfile(serverName, name, profile));
+                if (name.Length == 0)
+                    continue;
+
+                // The newest character file is the best local hint of which profile the
+                // launcher is actually using: a client writes it at every logout.
+                var files = CharacterFiles(profile);
+                profiles.Add(new SettingsProfile(serverName, name, profile, files.Count,
+                    files.Count == 0 ? null : files.Max(f => f.LastWriteUtc)));
             }
         }
 
