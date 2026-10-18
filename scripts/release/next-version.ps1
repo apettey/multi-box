@@ -12,7 +12,8 @@
 
     If <Ref> already carries a version tag (a re-run, or finalize after the build), that tag
     is the version and the changes are those since the tag before it. When the release for
-    that tag already exists, Release is false unless -IgnoreExistingRelease.
+    that tag already exists, Release is false unless -IgnoreExistingRelease; Finalize stays
+    true so the notes and CHANGELOG.md are (re)written - finalize is idempotent.
 
     Writes key=value lines to $GITHUB_OUTPUT when set, and returns the result object.
 
@@ -65,10 +66,14 @@ function Get-CommitChange([string]$Sha) {
     } else {
         @(Invoke-Git show --name-only --format= $Sha)
     }
+    # Fail closed: a lookup error must not turn a deploy:manual or semver:* PR into an
+    # unlabelled patch that auto-updates every installed copy. No PR is an empty list, not an error.
+    $raw = gh api "repos/$Repo/commits/$Sha/pulls"
+    if ($LASTEXITCODE -ne 0) { throw "Could not look up the PR for $Sha (gh api exit $LASTEXITCODE); not guessing its labels." }
+    $pulls = @(($raw -join "`n") | ConvertFrom-Json)
     $pr = $null
-    $pulls = gh api "repos/$Repo/commits/$Sha/pulls" 2>$null | ConvertFrom-Json -ErrorAction SilentlyContinue
-    if ($LASTEXITCODE -eq 0 -and $pulls) {
-        $pr = @($pulls | Where-Object { $_.merge_commit_sha -eq $Sha }) + @($pulls) | Select-Object -First 1
+    if ($pulls.Count) {
+        $pr = @($pulls | Where-Object { $_.merge_commit_sha -eq $Sha }) + $pulls | Select-Object -First 1
     }
     $parent = if ($parents.Count -gt 0) { $parents[0] } else { '' }
     [pscustomobject]@{
@@ -88,9 +93,10 @@ function Get-ChangesSince([string]$From, [string]$To) {
 }
 
 $headSha = (Invoke-Git rev-parse $Ref) -join ''
+$onHead = @()
 
 if ($PullRequest -gt 0) {
-    $tags = Get-VersionTags $BaseRef
+    $tags = @(Get-VersionTags $BaseRef)
     $latest = if ($tags.Count) { $tags[0] } else { '' }
     $changes = @(Get-ChangesSince $latest $BaseRef)
     $view = gh pr view $PullRequest --repo $Repo --json number,title,labels | ConvertFrom-Json
@@ -125,6 +131,7 @@ if ($PullRequest -gt 0) {
 
 $prs = @($changes | Where-Object { $_.Number -gt 0 } | Sort-Object Number -Unique |
     ForEach-Object { [pscustomobject]@{ Number = $_.Number; Title = $_.Title } })
+$result | Add-Member -NotePropertyName Finalize -NotePropertyValue ([bool]($result.Release -or $onHead.Count))
 $result | Add-Member -NotePropertyName PreviousTag -NotePropertyValue $previous
 $result | Add-Member -NotePropertyName Sha -NotePropertyValue $headSha
 $result | Add-Member -NotePropertyName PullRequests -NotePropertyValue $prs
@@ -132,6 +139,7 @@ $result | Add-Member -NotePropertyName PullRequests -NotePropertyValue $prs
 if ($env:GITHUB_OUTPUT) {
     @(
         "release=$($result.Release.ToString().ToLower())"
+        "finalize=$($result.Finalize.ToString().ToLower())"
         "version=$($result.Version)"
         "tag=$($result.Tag)"
         "bump=$($result.Bump)"

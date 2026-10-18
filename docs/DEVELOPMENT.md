@@ -171,7 +171,8 @@ Nobody cuts releases by hand. `.github/workflows/release.yml` runs on every push
 3. `scripts/release/finalize.ps1` writes the Release notes from `whats-new/features.json` and the
    `changelog/` rows, adds the version to `CHANGELOG.md` and sets `<Version>` in the App csproj.
 
-Every PR gets a "Merging this PR would release vX.Y.Z" comment from CI. The release logic is
+CI reports "Merging this PR would release vX.Y.Z" in every PR's job summary, and as a comment
+on PRs from this repo. The release logic is
 pure PowerShell in `scripts/release/Release.psm1`, tested with Pester:
 
 ```bash

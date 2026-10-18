@@ -6,7 +6,9 @@
 #                 and the app's <Version>
 # Publishing the Release is the deploy: installed copies auto-update from it (Velopack).
 # A deploy:manual label publishes it as a prerelease, which installed copies ignore until
-# someone promotes it. A failed run leaves no tag; the next run picks the changes up again.
+# someone promotes it. A failed build leaves no tag; the next run picks the changes up again.
+# Merges that land while a run is in progress share the next version (the newest pending run
+# covers every merge since the last tag; an older pending run is superseded, shown cancelled).
 name: Release
 
 on:
@@ -23,9 +25,15 @@ permissions:
 
 jobs:
   version:
+    # A dispatch from another branch would tag and auto-update a commit that isn't on main.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # PR labels decide the bump and deploy:manual; must not fail open
     outputs:
       release: ${{ steps.next.outputs.release }}
+      finalize: ${{ steps.next.outputs.finalize }}
       version: ${{ steps.next.outputs.version }}
       tag: ${{ steps.next.outputs.tag }}
       prerelease: ${{ steps.next.outputs.prerelease }}
@@ -58,11 +66,17 @@ jobs:
       release-tag: ${{ needs.version.outputs.tag }}
       prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
 
+  # Also runs when the build was skipped because the Release already exists (a re-run or
+  # dispatch after finalize failed), so notes and CHANGELOG.md are never silently left out.
   finalize:
     needs: [version, build]
+    if: >-
+      always() && needs.version.outputs.finalize == 'true' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v7
         with:

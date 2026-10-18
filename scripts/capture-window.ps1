@@ -19,7 +19,6 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Out,
-    [string]$ProcessName = 'MultiBox',
     # Substring of the window title; default is the process's main window.
     [string]$Title = '',
     # WIDTHxHEIGHT in pixels; resize the window first so before/after match.
@@ -28,6 +27,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Fixed, not a parameter: this must never point at an EVE client (AGENTS.md section 4).
+$ProcessName = 'MultiBox'
 if (-not $IsWindows -and $PSVersionTable.PSEdition -eq 'Core') { throw 'capture-window.ps1 needs Windows.' }
 
 Add-Type -AssemblyName System.Drawing

@@ -13,7 +13,7 @@ The rules file (`AGENTS.md`) wins over this skill if they disagree; update both 
 2. **Review loop.** A fresh reviewer (subagent that did not write it) reviews the diff; fix every finding; re-review; repeat until a round has **zero findings**. Round count goes in the PR body.
 3. **Screenshots.** Every visible change has a `before.png` (taken *before the first edit*) and `after.png` (final version) next to its release-log entry and in the PR.
 4. **Release log.** Every change, of any kind, gets a `changelog/` entry in the same PR; visible changes also get an announcement entry.
-5. **Every merge is a new version.** No skip. Merging to `main` releases automatically; docs/CI/deps changes are a patch.
+5. **Every merge is released.** No skip. Merging to `main` releases automatically; docs/CI/deps changes are a patch. Merges landing during a release run share the next version.
 6. **Release quickly.** Small PRs, merged the same day. The release (and with it the auto-update deploy) follows the merge with no one acting.
 
 ## Repo values
@@ -59,7 +59,7 @@ and `dotnet` to catch anything left over. The release automation (`scripts/relea
 
 Steps marked *(visible)* are for visible changes only. Steps 4, 6, 7, 8 and 9 are **never** skipped.
 
-1. **Branch.** `git fetch origin && git switch --no-track -c <prefix><short-name> origin/main`. One change per PR, small enough to merge the same day. Another PR open? Stack on its branch, or leave `changelog/README.md` and `whats-new/features.json` alone until step 7 (see `references/formats.md`).
+1. **Branch.** `git fetch origin && git switch --no-track -c <prefix><short-name> origin/main`. One change per PR, small enough to merge the same day. Another PR open? Stack on its branch (and merge the stack bottom-up, each PR into `main` after retargeting it with `gh pr edit <N> --base main` (this repo keeps merged branches, so GitHub doesn't retarget by itself), so each keeps its own labels and version), or leave `changelog/README.md` and `whats-new/features.json` alone until step 7 (see `references/formats.md`).
 2. **Before screenshot** *(visible)*. Before any edit: start the dev app from the untouched branch, open the affected view with live clients, and run the capture script into the scratchpad (the release-log folder doesn't exist yet). Not on Windows? **Stop and ask** the user to capture it. Never substitute a mockup, the design handoff or an old `docs/images/` file.
 3. **Build with tests.** Put testable logic in `MultiBox.Core`; keep `MultiBox.App` glue thin. Write or update tests, preferring real `samples/` logs, and cover empty, missing or unknown data, many characters (1, 10, more than 10), duplicate lines across clients, and clients opening and closing. A bug fix starts with a test that fails without the fix. *(code)* Run the full test cmd, the build and the artefact build; all must pass. *(non-code)* No new tests are needed, but CI must be green on the PR. Don't commit `bin/`, `obj/` or `dist/`.
 4. **Try it for real.**
@@ -74,7 +74,7 @@ Steps marked *(visible)* are for visible changes only. Steps 4, 6, 7, 8 and 9 ar
    - *(visible)* Add the entry at the top of `whats-new/features.json` with `"pr": <N>`, and copy or crop `after.png` to `whats-new/img/pr-<N>-<name>.png`.
    - Visible **fix**, not a feature: add the `semver:patch` label, because an announcement entry defaults to minor. Breaking change (config keys removed, behaviour users rely on gone): `semver:major`. Needs a step before installed copies should update: `deploy:manual`.
    - Commit, push, and pin the PR-body image URLs to that commit's SHA (`https://raw.githubusercontent.com/apettey/multi-box/<sha>/changelog/...`).
-   - CI comments "Merging this PR would release vX.Y.Z". Check that it's the version you expect.
+   - CI says "Merging this PR would release vX.Y.Z" (job summary, and a comment on same-repo PRs). Check that it's the version you expect.
 8. **Review loop.** Follow `references/review-loop.md`. Spawn a fresh reviewer subagent with the diff, the intent and the checklist. Fix every finding, then re-review the *new* diff with the same reviewer (`SendMessage`). Repeat until a round has zero findings. Every later commit (rebase conflicts, retaken screenshots) gets reviewed too. Write `Review rounds: <n>, last one clean` into the PR body.
 9. **Merge and check the release.**
    - `gh pr ready <N>`; CI must be green.

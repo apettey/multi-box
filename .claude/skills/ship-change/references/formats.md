@@ -44,8 +44,9 @@ Summaries of internal changes start with `Internal:`. The summary goes into the 
 `CHANGELOG.md` as written, so write it for players.
 
 **Parallel PRs:** the index and `whats-new/features.json` both take a row at the top, so PRs branched in parallel
-conflict there. Either stack the PR on the newest open PR's branch, or leave both shared files untouched until the
-rebase right before `gh pr create`.
+conflict there. Either stack the PR on the newest open PR's branch (merge the stack bottom-up, each PR into `main`
+after `gh pr edit <N> --base main`; merging a PR into another PR's branch loses its labels for versioning), or leave both
+shared files untouched until the rebase right before `gh pr create`.
 
 ## Announcement entry (visible changes only)
 
