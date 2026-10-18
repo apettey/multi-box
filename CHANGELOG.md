@@ -9,6 +9,18 @@ This file is generated: every merge to `main` is released automatically, and the
 adds its version section here from the [`changelog/`](changelog/README.md) entries and
 announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.md).
 
+## [1.0.6] - 2026-10-18
+
+### Changes
+
+- [Pin the shared release actions](https://github.com/apettey/multi-box/blob/378655e2f52784550e28e9f18e50b46e02580b0c/changelog/2026-10-18-pin-shared-actions/README.md): Internal: release and CI use the shared eve-contracts actions pinned to a commit, updated by Dependabot PRs, instead of `@main`
+
+### Pull requests
+
+- Pin the shared eve-contracts actions to a commit SHA (#19)
+
+**Full diff:** https://github.com/apettey/multi-box/compare/v1.0.5...v1.0.6
+
 ## [1.0.5] - 2026-10-18
 
 ### Changes

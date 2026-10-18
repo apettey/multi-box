@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>MultiBox</AssemblyName>
     <!-- Local builds only; the release job raises it after each release. CI overrides with -p:Version from the tag. -->
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
     <RootNamespace>MultiBox.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- WPF's native libraries (PresentationNative_cor3, wpfgfx_cor3) cannot be loaded
