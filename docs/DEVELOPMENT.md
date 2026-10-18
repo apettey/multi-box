@@ -5,9 +5,10 @@
 - .NET 10 SDK
 - Windows only for *running* the GUI; everything else works on any platform
 
-Before changing anything, read [AGENTS.md](../AGENTS.md): every change is expected to update
-[CHANGELOG.md](../CHANGELOG.md), the documentation, and — for UI changes — the screenshots in
-`docs/images/`.
+Before changing anything, read [AGENTS.md](../AGENTS.md) and follow the `ship-change` skill
+(`.claude/skills/ship-change/`): every change comes with tests, a `changelog/` entry, a review loop,
+updated documentation and, for UI changes, before/after screenshots. Every merge to `main` is
+released automatically (see [Releasing](#releasing)).
 
 ### Installing the SDK
 
@@ -157,12 +158,48 @@ Collected because each one cost real time:
 
 ---
 
+## Releasing
+
+Nobody cuts releases by hand. `.github/workflows/release.yml` runs on every push to `main`:
+
+1. `scripts/release/next-version.ps1` works out the next `vX.Y.Z` from the PRs merged since the
+   last tag: a `semver:major|minor|patch` label wins, a PR that adds a `whats-new/features.json`
+   entry is minor, everything else is patch. There is no skip.
+2. The shared Windows build (`apettey/eve-contracts`) tests, publishes and Velopack-packs that
+   version, then tags the commit and publishes the GitHub Release. Installed copies auto-update
+   from it; a `deploy:manual` label makes it a prerelease they ignore until promoted.
+3. `scripts/release/finalize.ps1` writes the Release notes from `whats-new/features.json` and the
+   `changelog/` rows, adds the version to `CHANGELOG.md` and sets `<Version>` in the App csproj.
+
+CI reports "Merging this PR would release vX.Y.Z" in every PR's job summary, and as a comment
+on PRs from this repo. The release logic is
+pure PowerShell in `scripts/release/Release.psm1`, tested with Pester:
+
+```bash
+pwsh -c "Invoke-Pester scripts/release/tests"
+pwsh scripts/release/next-version.ps1                                  # what main would release now
+pwsh scripts/release/finalize.ps1 -Ref v1.0.3 -Tag v1.0.3 -DryRun      # preview notes, change nothing
+```
+
+Details, labels and failure handling:
+`.claude/skills/ship-change/references/versioning-and-release.md`.
+
+---
+
 ## Repository layout
 
 ```
 MultiBox.sln
 build.ps1                      Windows build/publish script
 README.md
+AGENTS.md                      rules for every change (CLAUDE.md imports it)
+CHANGELOG.md                   generated per release; don't edit
+.claude/skills/ship-change/    how a change is built, reviewed and released
+changelog/                     release log: one folder per change, before/after images
+whats-new/features.json        player-facing announcements, keyed by PR number
+scripts/
+  release/                     version bump, release notes, changelog (+ Pester tests)
+  capture-window.ps1           screenshot a MultiBox window for before/after images
 docs/
   ARCHITECTURE.md              system design, data flow, known gaps
   LOG-FORMATS.md               EVE log format reference
