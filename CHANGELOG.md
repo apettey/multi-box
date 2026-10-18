@@ -9,6 +9,18 @@ This file is generated: every merge to `main` is released automatically, and the
 adds its version section here from the [`changelog/`](changelog/README.md) entries and
 announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.md).
 
+## [1.0.5] - 2026-10-18
+
+### Changes
+
+- [Shared release versioning](https://github.com/apettey/multi-box/blob/b1f095cd11706423b0ff0ade2ce1bc4699f5ce89/changelog/2026-10-18-shared-versioning/README.md): Internal: versioning, release notes and CHANGELOG.md now come from the release code shared with the other apps; same rules, nothing changes for players
+
+### Pull requests
+
+- Release versioning: use the shared actions from apettey/eve-contracts (#18)
+
+**Full diff:** https://github.com/apettey/multi-box/compare/v1.0.4...v1.0.5
+
 ## [1.0.4] - 2026-10-18
 
 ### Changes
