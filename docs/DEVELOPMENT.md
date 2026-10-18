@@ -187,11 +187,12 @@ python3 ../eve-contracts/scripts/versioning/bump.py release --repo apettey/multi
 
 # the notes and CHANGELOG.md section for a release: use a commit with something to release
 # (or a tagged one, e.g. v1.0.4), cut the notes out of the output, then preview without changing anything
+notes=$(mktemp)
 python3 ../eve-contracts/scripts/versioning/bump.py release --repo apettey/multi-box --head v1.0.4 \
   --bookkeeping-paths CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj --app-name MultiBox \
-  --announcement-notes list | awk '/^notes<</{f=1;next} /^EOF_NOTES_/{f=0} f' > notes.md
+  --announcement-notes list | awk '/^notes<</{f=1;next} /^EOF_NOTES_/{f=0} f' > "$notes"
 python3 ../eve-contracts/scripts/versioning/finalize.py --repo apettey/multi-box --tag v1.0.4 \
-  --notes-file notes.md --changelog-file CHANGELOG.md \
+  --notes-file "$notes" --changelog-file CHANGELOG.md \
   --version-file src/MultiBox.App/MultiBox.App.csproj --dry-run
 ```
 
