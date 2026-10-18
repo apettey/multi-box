@@ -162,23 +162,38 @@ Collected because each one cost real time:
 
 Nobody cuts releases by hand. `.github/workflows/release.yml` runs on every push to `main`:
 
-1. `scripts/release/next-version.ps1` works out the next `vX.Y.Z` from the PRs merged since the
-   last tag: a `semver:major|minor|patch` label wins, a PR that adds a `whats-new/features.json`
-   entry is minor, everything else is patch. There is no skip.
+1. The shared `next-version` action (`apettey/eve-contracts/.github/actions/next-version`, the
+   same versioning code eve-contracts and hangarscope use) works out the next `vX.Y.Z` from the
+   PRs merged since the last published tag: a `semver:major|minor|patch` label wins, a PR that
+   adds a new `whats-new/features.json` entry is minor, everything else is patch. There is no skip.
 2. The shared Windows build (`apettey/eve-contracts`) tests, publishes and Velopack-packs that
    version, then tags the commit and publishes the GitHub Release. Installed copies auto-update
    from it; a `deploy:manual` label makes it a prerelease they ignore until promoted.
-3. `scripts/release/finalize.ps1` writes the Release notes from `whats-new/features.json` and the
-   `changelog/` rows, adds the version to `CHANGELOG.md` and sets `<Version>` in the App csproj.
+3. The shared `finalize-release` action writes the Release notes (new `whats-new/features.json`
+   entries, the `changelog/` rows added since the last release, every PR), adds the version to
+   `CHANGELOG.md` and sets `<Version>` in the App csproj in a `Release vX.Y.Z: changelog and
+   version` commit, which step 1 ignores.
 
 CI reports "Merging this PR would release vX.Y.Z" in every PR's job summary, and as a comment
-on PRs from this repo. The release logic is
-pure PowerShell in `scripts/release/Release.psm1`, tested with Pester:
+on PRs from this repo. This repo has no copy of the release logic: it lives in
+`apettey/eve-contracts` (`scripts/versioning/`, Python, with its tests), and changing it is a PR
+there. To run it locally, with that repo checked out next to this one (read-only; `gh` lookups):
 
 ```bash
-pwsh -c "Invoke-Pester scripts/release/tests"
-pwsh scripts/release/next-version.ps1                                  # what main would release now
-pwsh scripts/release/finalize.ps1 -Ref v1.0.3 -Tag v1.0.3 -DryRun      # preview notes, change nothing
+# what main would release now (key=value lines; "release=false" when there is nothing new)
+python3 ../eve-contracts/scripts/versioning/bump.py release --repo apettey/multi-box --head origin/main \
+  --bookkeeping-paths CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj --app-name MultiBox \
+  --announcement-notes list
+
+# the notes and CHANGELOG.md section for a release: use a commit with something to release
+# (or a tagged one, e.g. v1.0.4), cut the notes out of the output, then preview without changing anything
+notes=$(mktemp)
+python3 ../eve-contracts/scripts/versioning/bump.py release --repo apettey/multi-box --head v1.0.4 \
+  --bookkeeping-paths CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj --app-name MultiBox \
+  --announcement-notes list | awk '/^notes<</{f=1;next} /^EOF_NOTES_/{f=0} f' > "$notes"
+python3 ../eve-contracts/scripts/versioning/finalize.py --repo apettey/multi-box --tag v1.0.4 \
+  --notes-file "$notes" --changelog-file CHANGELOG.md \
+  --version-file src/MultiBox.App/MultiBox.App.csproj --dry-run
 ```
 
 Details, labels and failure handling:
@@ -198,7 +213,6 @@ CHANGELOG.md                   generated per release; don't edit
 changelog/                     release log: one folder per change, before/after images
 whats-new/features.json        player-facing announcements, keyed by PR number
 scripts/
-  release/                     version bump, release notes, changelog (+ Pester tests)
   capture-window.ps1           screenshot a MultiBox window for before/after images
 docs/
   ARCHITECTURE.md              system design, data flow, known gaps

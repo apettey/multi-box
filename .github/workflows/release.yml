@@ -1,14 +1,18 @@
 # Every merge to main is a release (AGENTS.md section 1). One run at a time, in merge order:
-#   1. version  - next vX.Y.Z from the merged PRs' labels and files (scripts/release/next-version.ps1)
+#   1. version  - next vX.Y.Z from the merged PRs' labels and files, plus the release notes: the
+#                 shared next-version action from apettey/eve-contracts (the same code eve-contracts
+#                 and hangarscope use; this repo has no copy)
 #   2. build    - test, publish and Velopack-pack that version; only then tag the commit and
 #                 publish the GitHub Release (shared workflow in apettey/eve-contracts)
-#   3. finalize - release notes, plus a "Release vX.Y.Z" commit recording it in CHANGELOG.md
-#                 and the app's <Version>
+#   3. finalize - the shared finalize-release action: release notes, a check that the Release is
+#                 complete, and a "Release vX.Y.Z: changelog and version" commit recording it in
+#                 CHANGELOG.md and the app's <Version> (ignored by step 1, so it never bumps again)
 # Publishing the Release is the deploy: installed copies auto-update from it (Velopack).
 # A deploy:manual label publishes it as a prerelease, which installed copies ignore until
 # someone promotes it. A failed build leaves no tag; the next run picks the changes up again.
 # Merges that land while a run is in progress share the next version (the newest pending run
-# covers every merge since the last tag; an older pending run is superseded, shown cancelled).
+# covers every merge since the last published tag; an older pending run is superseded, shown
+# cancelled).
 name: Release
 
 on:
@@ -37,6 +41,7 @@ jobs:
       version: ${{ steps.next.outputs.version }}
       tag: ${{ steps.next.outputs.tag }}
       prerelease: ${{ steps.next.outputs.prerelease }}
+      notes: ${{ steps.next.outputs.notes }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -44,12 +49,12 @@ jobs:
 
       - name: Compute version
         id: next
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $r = ./scripts/release/next-version.ps1 -Ref $env:GITHUB_SHA
-          "## Version`n`n$($r.Tag) - release: $($r.Release), $($r.Bump): $($r.Reason)" | Add-Content $env:GITHUB_STEP_SUMMARY
+        uses: apettey/eve-contracts/.github/actions/next-version@main
+        with:
+          # the finalize job's bookkeeping commit touches only these; it never causes a release
+          bookkeeping-paths: CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj
+          app-name: MultiBox
+          announcement-notes: list
 
   build:
     needs: version
@@ -66,7 +71,7 @@ jobs:
       release-tag: ${{ needs.version.outputs.tag }}
       prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
 
-  # Also runs when the build was skipped because the Release already exists (a re-run or
+  # Also runs when the build was skipped because the Release is already published (a re-run or
   # dispatch after finalize failed), so notes and CHANGELOG.md are never silently left out.
   finalize:
     needs: [version, build]
@@ -75,18 +80,20 @@ jobs:
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: read
+      contents: write # gh release edit, and the bookkeeping push to main
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Release notes, CHANGELOG.md and <Version>
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.version.outputs.tag }}
-        run: |
-          git fetch -q --tags origin
-          ./scripts/release/finalize.ps1 -Ref $env:GITHUB_SHA -Tag $env:TAG
+        uses: apettey/eve-contracts/.github/actions/finalize-release@main
+        with:
+          tag: ${{ needs.version.outputs.tag }}
+          notes: ${{ needs.version.outputs.notes }}
+          prerelease: ${{ needs.version.outputs.prerelease }}
+          build-result: ${{ needs.build.result }}
+          app-name: MultiBox
+          changelog-file: CHANGELOG.md
+          version-file: src/MultiBox.App/MultiBox.App.csproj
+          branch: main

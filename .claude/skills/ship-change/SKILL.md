@@ -9,7 +9,7 @@ The rules file (`AGENTS.md`) wins over this skill if they disagree; update both 
 
 ## The six non-negotiables (blocking: a change missing any of them is not done)
 
-1. **Tests are in place.** Every code change adds/updates tests for the behaviour it changes; the full suite passes locally and in CI. Release scripts have Pester tests; non-code changes need CI green.
+1. **Tests are in place.** Every code change adds/updates tests for the behaviour it changes; the full suite passes locally and in CI. Non-code changes need CI green.
 2. **Review loop.** A fresh reviewer (subagent that did not write it) reviews the diff; fix every finding; re-review; repeat until a round has **zero findings**. Round count goes in the PR body.
 3. **Screenshots.** Every visible change has a `before.png` (taken *before the first edit*) and `after.png` (final version) next to its release-log entry and in the PR.
 4. **Release log.** Every change, of any kind, gets a `changelog/` entry in the same PR; visible changes also get an announcement entry.
@@ -21,8 +21,9 @@ The rules file (`AGENTS.md`) wins over this skill if they disagree; update both 
 Porting to another repo: change this table, the review rules below it, the reviewer brief in
 `references/review-loop.md`, the commands in `references/checklist.md` and `.github/pull_request_template.md`, and the
 release section of `references/versioning-and-release.md`. Then grep the skill for `MultiBox`, `multi-box`, `EULA`
-and `dotnet` to catch anything left over. The release automation (`scripts/release/`, `.github/workflows/ci.yml`,
-`release.yml`) is repo-agnostic apart from the csproj path in `Release.psm1` and `finalize.ps1`.
+and `dotnet` to catch anything left over. The release automation is shared, not copied: `.github/workflows/ci.yml`
+and `release.yml` call the `next-version`, `finalize-release` and `validate-features` actions in
+`apettey/eve-contracts` with this repo's paths as inputs.
 
 | Key | Value |
 | --- | --- |
@@ -34,12 +35,11 @@ and `dotnet` to catch anything left over. The release automation (`scripts/relea
 | Dev data | Real EVE clients with logging on; there is no seed or mock (AGENTS.md section 3). `multibox-replay doctor` checks the setup. The dev build uses your real `%APPDATA%\MultiBox\multibox.json`; don't press **SYNC NOW** unless the change is about settings sync. |
 | Screenshot | `.\scripts\capture-window.ps1 -Size 1600x1000 -Out <path>.png` (add `-Title '<text>'` for a secondary window such as SYNC LAYOUT). Same `-Size` for before and after. |
 | Test dir / cmd | `tests/MultiBox.Core.Tests/` (xUnit, asserting against real logs in `samples/`) · `dotnet test tests/MultiBox.Core.Tests/MultiBox.Core.Tests.csproj -c Release --nologo` |
-| Script tests | `pwsh -c "Invoke-Pester scripts/release/tests"` (needed when `scripts/release/` changes) |
 | Build | `dotnet build MultiBox.sln -c Release --nologo` (add `-p:EnableWindowsTargeting=true` off Windows) |
 | Artefact build | `.\build.ps1 -SelfContained` (PR CI also publishes and Velopack-packs via `windows-build`) |
 | Release log | `changelog/` (index `changelog/README.md`). `CHANGELOG.md` is **generated** at release; don't edit it. |
 | Announcement | `whats-new/features.json` · images `whats-new/img/pr-<N>-<name>.png`. No in-app What's New yet; entries become the GitHub Release notes. |
-| Version source | Tags `vX.Y.Z`, computed on merge by `scripts/release/next-version.ps1`. The release job writes `<Version>` in `src/MultiBox.App/MultiBox.App.csproj`; don't edit it by hand. |
+| Version source | Tags `vX.Y.Z`, computed on merge by the shared `next-version` action in `apettey/eve-contracts` (the same code as eve-contracts and hangarscope; its tests and changes live there). The release job writes `<Version>` in `src/MultiBox.App/MultiBox.App.csproj`; don't edit it by hand. |
 | Release | **Automatic:** `.github/workflows/release.yml` on every push to `main` → version → build/pack → tag + GitHub Release → notes + `CHANGELOG.md`. |
 | Deploy | Installed copies auto-update from GitHub Releases (Velopack, hourly), so publishing the Release **is** the deploy. `deploy:manual` publishes it as a prerelease, which they ignore until promoted. |
 
@@ -64,7 +64,7 @@ Steps marked *(visible)* are for visible changes only. Steps 4, 6, 7, 8 and 9 ar
 3. **Build with tests.** Put testable logic in `MultiBox.Core`; keep `MultiBox.App` glue thin. Write or update tests, preferring real `samples/` logs, and cover empty, missing or unknown data, many characters (1, 10, more than 10), duplicate lines across clients, and clients opening and closing. A bug fix starts with a test that fails without the fix. *(code)* Run the full test cmd, the build and the artefact build; all must pass. *(non-code)* No new tests are needed, but CI must be green on the PR. Don't commit `bin/`, `obj/` or `dist/`.
 4. **Try it for real.**
    - *Code:* run the dev app against live clients through the main path, the edge cases and any setting that toggles it. Say in the release log what you couldn't exercise (e.g. "no web landed during the test"). Off Windows, this blocks: say so, don't claim it.
-   - *Non-code:* check the actual output: rendered Markdown, valid JSON, a script dry run (`finalize.ps1 -DryRun`), or the workflow run on the PR.
+   - *Non-code:* check the actual output: rendered Markdown, valid JSON, a release dry run (`docs/DEVELOPMENT.md`, "Releasing"), or the workflow run on the PR.
 5. **After screenshot** *(visible)*. Same view, same `-Size`, the **final** UI; retake it if review changes the UI. Replace any `docs/images/` file the change makes stale.
 6. **Release-log entry.** Create `changelog/YYYY-MM-DD-<short-name>/README.md` from `references/formats.md`, with `before.png`/`after.png` beside it. Record what was and wasn't run (tests, live clients, anything not exercised). Changing an old feature gets a **new** entry; never rewrite old ones. Commit.
 7. **Draft PR, announcement, index.**

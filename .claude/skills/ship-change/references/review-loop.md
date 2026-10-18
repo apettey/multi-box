@@ -38,7 +38,6 @@ Check:
   closing, a character with no log yet)? Any regression in nearby behaviour?
 - Tests: is the new behaviour covered in tests/MultiBox.Core.Tests, preferably against samples/?
   Would the tests fail without the change? Is a bug fix accompanied by a test that reproduces it?
-  If scripts/release/ changed, are the Pester tests in scripts/release/tests updated?
 - Evidence: does the release-log entry exist, match the diff and say what wasn't exercised? (Visible)
   are before.png/after.png present, from the real app, and does after.png show the final UI? Is there
   an entry in whats-new/features.json with "pr": <N>, written for players and saying where to find the
