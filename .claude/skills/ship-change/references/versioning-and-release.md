@@ -89,9 +89,10 @@ The Release must list `MultiBox-win-Setup.exe`, the `.nupkg` and the zip. Report
   up both changes, so they share one version. If the build log warns it could not remove the tag, delete it
   (`gh api -X DELETE repos/apettey/multi-box/git/refs/tags/vX.Y.Z`) before the next run.
 - **build failed after the Velopack Release was published** (e.g. the zip upload): the version has shipped and the tag
-  stays. Don't re-run the build (`vpk pack` would find the same version already released). Attach the missing zip by
-  hand from the run's artefacts, or leave it; then `gh run rerun <id> --failed` to run finalize, or let the next
-  merge's run finalize its own version (only this version's notes stay short).
+  stays. Don't re-run the failed build job (`vpk pack` would find the same version already released). Attach the
+  missing zip by hand from the run's artefacts, or leave it, then `gh run rerun <id>` (**all** jobs, not
+  `--failed`): the version job sees the Release, skips the build and runs finalize. Skipping this leaves the shipped
+  version with no `CHANGELOG.md` section and only GitHub's generated notes; the next merge's run won't add it.
 - **finalize failed**: the Release is out; only the notes and bookkeeping are missing. Re-run the run (failed jobs
   or all jobs both work: with the Release already there, the build is skipped and finalize runs).
 
