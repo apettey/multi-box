@@ -70,9 +70,18 @@
                 <TextBlock Text="PROFILE" VerticalAlignment="Center" Width="76"
                            FontFamily="{StaticResource Mono}" FontSize="9"
                            Foreground="{x:Static local:Palette.TextMuted}"/>
+                <!-- The stock ComboBox stays light, and the app-wide TextBlock style would paint
+                     its text light too, so the item text is set dark explicitly. -->
                 <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}"
-                          SelectedItem="{Binding SelectedProfile}" DisplayMemberPath="Label"
-                          FontFamily="{StaticResource Mono}" FontSize="11"/>
+                          SelectedItem="{Binding SelectedProfile}"
+                          FontFamily="{StaticResource Mono}" FontSize="11">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Label}" FontFamily="{StaticResource Mono}" FontSize="11"
+                                       Foreground="{x:Static local:Palette.Page}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
             </Grid>
 
             <!-- The launcher assigns a profile per account, so one fleet can read its settings
@@ -98,9 +107,13 @@
                     <ItemsControl ItemsSource="{Binding OtherProfiles}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <CheckBox Margin="0,0,0,3" Content="{Binding Label}" IsChecked="{Binding IsChecked}"
-                                          FontFamily="{StaticResource Mono}" FontSize="10"
-                                          Foreground="{x:Static local:Palette.TextSecondary}"/>
+                                <!-- A TextBlock rather than string Content: string content is
+                                     read as an access key and loses the first underscore of
+                                     names like Split_Screen. -->
+                                <CheckBox Margin="0,0,0,3" IsChecked="{Binding IsChecked}">
+                                    <TextBlock Text="{Binding Label}" FontFamily="{StaticResource Mono}" FontSize="10"
+                                               Foreground="{x:Static local:Palette.TextSecondary}"/>
+                                </CheckBox>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

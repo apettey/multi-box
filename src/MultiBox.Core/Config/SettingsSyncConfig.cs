@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace MultiBox.Core.Config;
 
 /// <summary>
@@ -32,6 +34,7 @@ public sealed class SettingsSyncConfig
 
     public DateTime? LastSyncUtc { get; set; }
 
+    [JsonIgnore]
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ProfilePath) && SourceCharacterId > 0;
 
     /// <summary>Every id in <paramref name="available"/> except the source and the excluded.</summary>
