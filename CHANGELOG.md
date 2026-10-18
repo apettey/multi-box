@@ -12,6 +12,19 @@ screenshots current.
 
 ### Added
 
+- **Settings sync (⧉ SYNC LAYOUT).** Copies one character's EVE settings — window positions,
+  chat windows, overview — over your other characters, so every client opens with the same
+  layout. Pick the profile and the source character, untick any alt that keeps its own
+  layout, and sync. **Fleets split across launcher profiles are covered too:** tick other
+  profiles under *Also apply to* and the source layout is copied into each of them, including
+  over the source character's own copy there. The profile picker lists every profile with its
+  character count and when it was last written, most recent first, so the one the launcher is
+  actually using is at the top. EVE reads these files at login and writes them back at logout, so a sync
+  is refused while any client is open, including one sitting at character select. Optionally
+  it runs **by itself once the last client closes**, which puts the files in place before the
+  next launch without MultiBox having to launch anything. Every sync first zips the profile's
+  character files to `%APPDATA%\MultiBox\settings-backups`, and **RESTORE LAST BACKUP** puts
+  back every profile that sync touched. Account-wide files (`core_user_*.dat`, graphics and audio) are not touched yet.
 - **Fleet Command dashboard.** The tile dashboard is replaced by the full Fleet Command
   layout: a header carrying fleet-wide incoming damage, reps, neut pressure and an EWAR alert
   count; a character grid that reflows from 1 to 10 cards; and a 440px unified comms panel.
@@ -136,6 +149,13 @@ screenshots current.
 
 ### Security
 
+- **MultiBox now writes into EVE's settings folder**, for settings sync — the first time it
+  writes any file it does not own. The boundary is narrow and enforced: only
+  `core_char_<id>.dat` files, copied whole and never parsed or edited, only while no EVE
+  window is open, only over files that already exist, and always after a backup. A new
+  `EulaComplianceTests` check makes file writes an allow-list by source file, so no other
+  code can start writing to disk unnoticed. No native calls were added. See
+  [docs/EULA-COMPLIANCE.md](docs/EULA-COMPLIANCE.md).
 - The native API surface grew from six calls to twelve, each a deliberate, documented
   decision recorded in [docs/EULA-COMPLIANCE.md](docs/EULA-COMPLIANCE.md):
   - `DwmRegisterThumbnail`, `DwmUpdateThumbnailProperties`, `DwmUnregisterThumbnail`,

@@ -5,6 +5,8 @@ covering the specific concerns raised: **reading the screen**, and **reading gam
 inspect state**.
 
 **Reviewed:** 2026-08-28, against commit `67e84d7` plus the hardening described below.
+**Updated:** 2026-10-17, for settings sync — the first feature that writes a file EVE owns.
+See [Writing EVE's settings files](#writing-eves-settings-files).
 **Scope:** all 42 source files in `src/` and `tests/`, excluding build output.
 
 ---
@@ -18,7 +20,8 @@ ESI web API. It additionally asks Windows for the titles and rectangles of visib
 which is how it knows which character is on which monitor.
 
 It does not read game memory, does not capture or sample the screen, does not send input,
-and cannot modify the game or any of its windows.
+and cannot modify the game or any of its windows. The one EVE file it writes is a character
+settings file, copied whole while every client is closed, when you ask it to sync layouts.
 
 ---
 
@@ -82,9 +85,10 @@ This is the entire list. All of it concerns *windows on the desktop*, never the 
 | `RegisterHotKey` | reserve a key combination for the switcher | no — reserves a key, reads nothing |
 | `UnregisterHotKey` | release it again | no |
 
-**Twelve functions.** Six are read-only window queries. Four are DWM calls that run in the
+**Fifteen functions.** Six are read-only window queries. Four are DWM calls that run in the
 opposite direction — they tell the compositor where to draw and return nothing about the
-source. Two more, plus the hotkey pair, exist to raise a client.
+source. Three exist to raise a client (`IsIconic` is a read-only check that goes with the
+other two), and two reserve the switcher's hotkeys.
 
 This is still a subset of what eve-o-preview — a widely used and long-tolerated tool —
 requires: eve-o-preview draws its previews with the same thumbnail API and switches focus the
@@ -137,9 +141,9 @@ a unit test enforces it.
 | Screen scraping / pixel reading / OCR | **not done** | no capture APIs; previews are drawn by DWM, never read back |
 | Injecting code into the client | **not done** | no `CreateRemoteThread`, no `LoadLibrary`, no DLL |
 | Automating gameplay / botting | **not done** | no input APIs; the app has no way to act in game |
-| Input broadcasting (one keypress → many clients) | **not done** | no `SendInput`, `keybd_event`, `PostMessage`, `SendMessage`, `SendKeys`; no hotkey registration |
+| Input broadcasting (one keypress → many clients) | **not done** | no `SendInput`, `keybd_event`, `PostMessage`, `SendMessage`, `SendKeys`; `RegisterHotKey` reserves combinations for this app and cannot send them anywhere |
 | Intercepting or modifying network traffic | **not done** | no sockets, no packet capture; only HTTPS to `esi.evetech.net` |
-| Modifying client files | **not done** | every EVE file is opened `FileAccess.Read` |
+| Modifying client files | **not done** | no program file, cache or log is ever written. Character *settings* files are copied whole on request — see [below](#writing-eves-settings-files) |
 | Circumventing client restrictions | **not done** | nothing interacts with the client at all |
 | Misrepresenting itself to CCP services | **not done** | ESI requests send an identifying User-Agent |
 
@@ -149,8 +153,9 @@ a unit test enforces it.
   tools can read them. This is the same mechanism PyEveLiveDPS, zKillboard log parsers and
   every combat-log analyser uses.
 - **Calling ESI.** CCP's public, documented API, built for third-party tools. Only two
-  unauthenticated public endpoints are used: `POST /universe/ids/` and
-  `GET /characters/{id}/`, plus the public portrait image service. **No OAuth, no access
+  unauthenticated public endpoints are used: `POST /universe/ids/`,
+  `POST /universe/names/` and `GET /characters/{id}/`, plus the public portrait image
+  service. **No OAuth, no access
   token, no scopes** — so there is not even a credential that could be abused.
 - **Reading window titles.** Standard OS metadata, and the documented convention
   (`EVE - <Character Name>`) that eve-o-preview relies on.
@@ -164,22 +169,61 @@ a unit test enforces it.
 | EVE game logs | `...\EVE\logs\Gamelogs\*.txt` | **read-only** |
 | EVE chat logs | `...\EVE\logs\Chatlogs\*.txt` | **read-only** |
 | eve-o-preview config | `%LOCALAPPDATA%\EVE-O Preview\EVE-O Preview.json` | **read-only** |
+| EVE character settings | `%LOCALAPPDATA%\CCP\EVE\*tranquility*\settings_*\core_char_<id>.dat` | **whole-file copy**, settings sync only, every client closed |
+| EVE account settings, prefs | `core_user_*.dat`, `core_char__.dat`, `prefs.ini` and the rest of that folder | **never opened** |
 | MultiBox config | `%APPDATA%\MultiBox\multibox.json` | read/write |
+| Settings backups | `%APPDATA%\MultiBox\settings-backups\*.zip` | read/write |
 
-The only file the application ever writes is its own configuration. Every EVE-owned file is
-opened `FileMode.Open, FileAccess.Read`. Nothing is uploaded anywhere: log contents never
-leave the machine, and the only outbound traffic is the ESI character-id lookup.
+Apart from MultiBox's own files, the only thing the application writes is a character settings
+file during a sync. Every other EVE-owned file — logs, caches, the client itself — is opened
+`FileMode.Open, FileAccess.Read` or not at all. Nothing is uploaded anywhere: log contents
+never leave the machine, and the only outbound traffic is the ESI character lookups.
 
 `FileShare.ReadWrite | FileShare.Delete` appears on those reads. This is *permissive
 sharing*, not write access — it is required because EVE holds its own write lock on an open
 log, and without it every read would throw. It grants MultiBox nothing.
 
+### Writing EVE's settings files
+
+Settings sync copies one character's `core_char_<id>.dat` over other characters' files, so
+every client opens with the same window layout. The copies can go into other
+`settings_<Profile>` folders the player ticks, because the launcher assigns profiles per
+account; the rules below apply identically in each. This is the only place MultiBox writes into a
+folder EVE owns, and it was added deliberately. It is the same thing players do by hand and
+tools such as EANM and EVE Settings Manager have done for years; the closest thing to an
+official position is CCP support telling players to back up and restore this folder by copying
+it. There is no CCP statement about third-party settings copiers either way.
+
+What makes it safe:
+
+- **It is a file copy, not an edit.** The files are copied whole, byte for byte. MultiBox
+  never parses, patches or generates their contents, so it cannot set a value the game's own
+  UI could not have set on another character. Editing settings files is the grey area here,
+  and it is not done.
+- **Only character files.** Target paths are built as `core_char_<numeric id>.dat` and nothing
+  else in the folder can be addressed. `SettingsSyncTests` runs a sync in a folder holding
+  account settings, the shared default and `prefs.ini`, and asserts they are untouched.
+- **Only existing files.** A character that has never logged in gets no file.
+- **Never under a running client.** A sync, manual or automatic, is refused while any window
+  titled `EVE` or `EVE - <name>` exists. The client is not touched at all: it reads the files
+  the next time it starts, exactly as if the player had copied them.
+- **Always reversible.** Every character file in the profile is zipped to
+  `%APPDATA%\MultiBox\settings-backups` first, and the window can restore it.
+- **No new capability.** No native call was added. Open clients are counted with the same
+  `EnumWindows` and `GetWindowText` calls already listed above.
+
+Enforcement: `EulaComplianceTests.OnlyApprovedFilesWriteToDisk` treats file writes as an
+allow-list by source file. Only `MultiBoxConfig.cs` (the app's own config) and
+`CharacterSettingsSync.cs` may call `File.Copy`, `File.Move`, `File.Write*`, `File.Delete`,
+`ZipFile.Open` and the like; anything else fails the build.
+
 ## Third-party dependencies
 
-`MultiBox.Core` and `MultiBox.App` have **no third-party NuGet packages** — .NET base class
-library only. The four packages in the solution (`xunit`, `xunit.runner.visualstudio`,
-`Microsoft.NET.Test.Sdk`, `coverlet.collector`) are test-only and are not shipped in the
-published binary. There is no dependency that could introduce prohibited behaviour.
+`MultiBox.Core` has **no NuGet packages** — .NET base class library only. `MultiBox.App`
+adds two: `System.Speech` (Microsoft's speech synthesis, for the spoken web warning) and
+`Velopack` (application updates, which fetches only MultiBox's own releases). Neither touches
+the EVE client. The test packages (`xunit`, `xunit.runner.visualstudio`,
+`Microsoft.NET.Test.Sdk`, `coverlet.collector`) are not shipped in the published binary.
 
 ---
 
@@ -193,6 +237,8 @@ The design makes overstep difficult rather than merely absent:
   there is no mechanism by which text could reach the game.
 - All game state arrives through **two parsers over text files**. The parsers cannot do
   anything but produce data structures.
+- The one write into EVE's folders is a **whole-file copy** in one class, refused while any
+  client is open, and enforced by a test that no other class writes files.
 
 ## Enforcement
 
@@ -207,8 +253,10 @@ silently shipping.
 
 **Cleared to install.** The two techniques you asked about — screen reading and memory
 inspection — are both absent, and one of them was a feature deliberately abandoned to stay
-on the right side of the line. The remaining native surface is six read-only window queries,
-strictly fewer capabilities than the eve-o-preview you already run.
+on the right side of the line. The native surface is six read-only window queries plus the
+thumbnail, focus and hotkey calls above — strictly fewer capabilities than the eve-o-preview
+you already run. Settings sync writes character settings files only as whole-file copies,
+with every client closed.
 
 The honest caveat, unrelated to the EULA: the WPF window has not yet been rendered on
 Windows, so expect UI rough edges on first run.

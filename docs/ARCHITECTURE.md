@@ -7,7 +7,9 @@ checked against them.
 
 1. **Logs and ESI only.** No reading EVE client memory, no injected input, no automation.
    This is an EULA constraint, not a preference. The only Windows APIs used are read-only
-   window queries.
+   window queries plus the focus and thumbnail calls listed in EULA-COMPLIANCE.md. The one
+   EVE-owned file ever written is a `core_char_<id>.dat`, copied whole by settings sync
+   while no client is open.
 2. **Windows is the deployment target**, because that is where the game runs. But the
    parsing and state logic must be testable off-Windows, or development is miserable.
 3. **The same event arrives many times.** With four clients running, one game event lands in
@@ -28,7 +30,7 @@ from a Mac via `-p:EnableWindowsTargeting=true`.
 | `src/MultiBox.Core` | `net10.0` | discovery, tailing, parsing, dedup, stats, config, ESI |
 | `src/MultiBox.App` | `net10.0-windows` | WPF dashboard, audio alerts, window interop |
 | `src/MultiBox.Replay` | `net10.0` | console diagnostics (`doctor`, `replay`, `chat`) |
-| `tests/MultiBox.Core.Tests` | `net10.0` | 79 xunit tests, mostly against real logs |
+| `tests/MultiBox.Core.Tests` | `net10.0` | 172 xunit tests, mostly against real logs |
 
 `MultiBox.Core` has **no third-party dependencies** — `System.Text.Json` and
 `System.Net.Http` only.
@@ -162,8 +164,44 @@ This is the same mechanism eve-o-preview uses, which is what makes the two tools
 interoperable and why the config keys match. The character-select screen shows a bare `EVE`
 title and is skipped.
 
-Only `EnumWindows`, `GetWindowText`, `GetWindowRect`, `GetForegroundWindow` and
-`SetWindowPos` are imported. Nothing writes to the game.
+`CountOpenClients` counts that bare `EVE` title as well, because settings sync must also wait
+for a client sitting at character select.
+
+The window queries are `EnumWindows`, `IsWindowVisible`, `GetWindowTextLength`,
+`GetWindowText`, `GetWindowRect` and `GetForegroundWindow`; the full list, including the
+focus and thumbnail calls, is in [EULA-COMPLIANCE.md](EULA-COMPLIANCE.md). Nothing writes to
+the game.
+
+### Settings sync — `EveSettingsLocator`, `CharacterSettingsSync`, `AutoSyncGate`
+
+The portable half lives in `MultiBox.Core/Settings`:
+
+- `EveSettingsLocator` lists `settings_<Profile>` folders under
+  `%LOCALAPPDATA%\CCP\EVE\*tranquility*` and the `core_char_<id>.dat` files in one. The id
+  in the filename is the same ESI character id that names the log files, so a file is shown
+  by pilot name without a lookup; ids no log has mentioned are named by
+  `POST /universe/names/`.
+- `CharacterSettingsSync` zips every character file in the target profile to
+  `%APPDATA%\MultiBox\settings-backups`, then copies the source over each target through a
+  temporary file and a rename. The source and target profiles can differ: the launcher assigns
+  a profile per account, so a fleet can read from several folders, and "also apply to" copies
+  the source layout into each. Every zip from one sync shares a batch id, so restoring and
+  pruning treat a multi-profile sync as one unit.
+- `EveSettingsLocator.FindProfiles` reports each profile's character count and newest write.
+  A client rewrites its profile at every logout, so the newest is the best local hint of which
+  profile is in use; the launcher's own per-account choice is not read. Target paths are built from a numeric id, so nothing but a
+  `core_char_<id>.dat` can be addressed. It is one of the two files the EULA test allows to
+  write to disk.
+- `AutoSyncGate` decides when an automatic sync is due: no EVE window for ten seconds, no
+  settings file written for ten seconds (a closing client flushes after its window goes), and
+  something changed since the last sync.
+
+`SettingsSyncService` in the app owns the one rule that needs Windows: it refuses to copy
+while `EveClientLocator.CountOpenClients()` is non-zero. The dashboard's rescan timer calls
+its `Tick`, so automatic sync runs after the last client closes.
+
+MultiBox does not launch EVE, and syncing at that moment is why it does not need to: the
+next launch, whenever it happens, reads files that are already in place.
 
 ### ESI — `EsiClient`
 
@@ -241,3 +279,6 @@ Recorded honestly so they are not mistaken for finished work.
 - **No fleet-wide roll-up** (total fleet DPS, who is being primaried) — the per-character
   data supports it, nothing renders it yet.
 - **`Sz`/`PanelSize` is only partially used**, since the layout question above is open.
+- **Settings sync covers character files only.** `core_user_<id>.dat` (account-wide graphics,
+  audio and similar) is not synced: no local file maps an account id to its characters, and
+  those files carry hardware-specific values.

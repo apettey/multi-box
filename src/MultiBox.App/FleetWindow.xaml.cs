@@ -289,4 +289,15 @@ public partial class FleetWindow : Window
         _viewModel.RefreshCycleTags();
         _viewModel.SaveConfig();
     }
+
+    private void SettingsSync_Click(object sender, MouseButtonEventArgs e)
+    {
+        var editor = new SettingsSyncWindow(_config, _viewModel.SettingsSync, _viewModel.KnownCharacters())
+        {
+            Owner = this
+        };
+
+        editor.ShowDialog();
+        _viewModel.SaveConfig();
+    }
 }

@@ -55,6 +55,35 @@ public sealed class EsiClient : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Resolves character ids to names via POST /universe/names/, for settings files that are
+    /// named by id alone. ESI rejects the whole batch if any id is unknown, so a failure
+    /// returns what it has (nothing) rather than throwing; the caller shows the bare id.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<long, string>> ResolveCharacterNamesAsync(
+        IEnumerable<long> ids, CancellationToken ct = default)
+    {
+        var list = ids.Where(id => id > 0).Distinct().ToList();
+        var result = new Dictionary<long, string>();
+        if (list.Count == 0)
+            return result;
+
+        var payload = new StringContent(JsonSerializer.Serialize(list), Encoding.UTF8, "application/json");
+        using var response = await _http.PostAsync($"{BaseUrl}/universe/names/?datasource=tranquility", payload, ct);
+        if (!response.IsSuccessStatusCode)
+            return result;
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        foreach (var entry in doc.RootElement.EnumerateArray())
+        {
+            if (entry.TryGetProperty("category", out var category) && category.GetString() == "character" &&
+                entry.TryGetProperty("id", out var id) && entry.TryGetProperty("name", out var name))
+                result[id.GetInt64()] = name.GetString()!;
+        }
+
+        return result;
+    }
+
     /// <summary>Fetches public character details for a known id.</summary>
     public async Task<EsiCharacter?> GetCharacterAsync(long characterId, CancellationToken ct = default)
     {

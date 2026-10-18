@@ -40,6 +40,9 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         _voice = new VoiceAnnouncer { Enabled = config.VoiceAlerts };
 
         _session.EwarAlert += OnEwarAlert;
+
+        SettingsSync = new SettingsSyncService(config, SaveConfig);
+        SettingsSync.Synced += note => Dispatch(() => _syncNote = note);
         _session.ChatMessageAdded += message => Dispatch(() => AddMessage(message));
 
         // The download may already have finished before the window subscribed.
@@ -71,6 +74,12 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     }
 
     public string ConfigPath { get; }
+
+    /// <summary>Copies one character's EVE layout over the others once the fleet is down.</summary>
+    public SettingsSyncService SettingsSync { get; }
+
+    /// <summary>The last sync's outcome, carried on the status line until the next one.</summary>
+    private string? _syncNote;
 
     /// <summary>Cards on the active squad tab.</summary>
     public ObservableCollection<CharacterCardViewModel> Cards { get; } = new();
@@ -359,9 +368,13 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         RefreshCycleTags();
         RefreshVisible();
 
-        Status = _all.Count == 0
+        // After the window scan, so a client that has just closed is already out of the count.
+        SettingsSync.Tick();
+
+        Status = (_all.Count == 0
             ? "No EVE logs found yet — waiting for a client to write one."
-            : $"Watching {_all.Count} character(s).";
+            : $"Watching {_all.Count} character(s).")
+            + (_syncNote is null ? string.Empty : "  " + _syncNote);
     }
 
     /// <summary>Matches cards to running client windows so thumbnails and focus have a target.</summary>
@@ -525,6 +538,9 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
 
     /// <summary>Every character the dashboard knows about, for the cycle-group roster.</summary>
     public IReadOnlyList<string> AllCharacterNames => _all.Select(c => c.Name).ToList();
+
+    /// <summary>Name to id for every pilot this session has seen, for labelling settings files.</summary>
+    public IReadOnlyDictionary<string, long> KnownCharacters() => _session.KnownCharacters();
 
     /// <summary>Window handle for a character, so the switcher can raise the right client.</summary>
     public IntPtr HandleFor(string character) =>

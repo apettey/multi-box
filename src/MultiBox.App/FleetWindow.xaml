@@ -611,6 +611,14 @@
                     </Border>
 
                     <Border Margin="8,0,0,0" CornerRadius="3" Padding="10,4" Cursor="Hand"
+                            BorderThickness="1" BorderBrush="{x:Static local:Palette.CardBorder}"
+                            MouseLeftButtonUp="SettingsSync_Click"
+                            ToolTip="Settings Sync: give every client the same EVE window layout">
+                        <TextBlock Text="⧉ SYNC LAYOUT" FontFamily="{StaticResource Mono}" FontSize="10"
+                                   Foreground="{x:Static local:Palette.TextSecondary}"/>
+                    </Border>
+
+                    <Border Margin="8,0,0,0" CornerRadius="3" Padding="10,4" Cursor="Hand"
                             BorderThickness="1" BorderBrush="{x:Static local:Palette.NeutBlue}"
                             MouseLeftButtonUp="TestVoice_Click" ToolTip="Test the spoken web warning">
                         <TextBlock Text="🔊 VOICE" FontFamily="{StaticResource Mono}" FontSize="10"

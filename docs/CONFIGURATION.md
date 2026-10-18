@@ -39,6 +39,15 @@ layouts the same way, and so an existing arrangement can be imported rather than
   "CharacterIds": {
     "Commander Tyrael": 1899648001
   },
+  "SettingsSync": {
+    "ProfilePath": "C:\\Users\\you\\AppData\\Local\\CCP\\EVE\\c_eve_sharedcache_tq_tranquility\\settings_Default",
+    "SourceCharacterId": 1899648001,
+    "AlsoApplyToProfilePaths": [],
+    "ExcludedCharacterIds": [],
+    "AutoSync": false,
+    "KeepBackups": 10,
+    "LastSyncUtc": null
+  },
   "PanelSize": { "Width": 360, "Height": 190 }
 }
 ```
@@ -141,6 +150,20 @@ and lets MultiBox position panels against the rectangles you already arranged.
 Lookup order when `EnablePerClientLayouts` is `true`: `PerClientLayout[activeClient][panel]`
 → `FlatLayout[panel]` → built-in default. When `false`, `PerClientLayout` is skipped
 entirely.
+
+### Settings sync
+
+Managed from `⧉ SYNC LAYOUT`; see the user guide.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `SettingsSync.ProfilePath` | `null` | the `settings_<Profile>` folder to sync within |
+| `SettingsSync.SourceCharacterId` | `0` | character whose `core_char_<id>.dat` is copied; `0` disables sync |
+| `SettingsSync.AlsoApplyToProfilePaths` | `[]` | other `settings_<Profile>` folders that also get the source layout, over every character file there (the source character's own copy included) |
+| `SettingsSync.ExcludedCharacterIds` | `[]` | characters left alone, in every profile. Everyone else is a target, so new alts are included |
+| `SettingsSync.AutoSync` | `false` | sync by itself once every EVE client has been closed for ten seconds |
+| `SettingsSync.KeepBackups` | `10` | syncs whose backups are kept in `%APPDATA%\MultiBox\settings-backups` (one zip per profile touched) |
+| `SettingsSync.LastSyncUtc` | `null` | when the last sync ran. Auto-sync only runs again once a settings file has changed since |
 
 ---
 

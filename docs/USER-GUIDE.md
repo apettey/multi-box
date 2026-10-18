@@ -209,6 +209,60 @@ which eve-o allows — the order in the file is kept.
 
 ---
 
+## Settings sync (one layout for every client)
+
+![The settings sync window](images/settings-sync.png)
+
+Arrange your windows, chat and overview once, on one character, and give every other
+character the same layout. This does what EANM and EVE Settings Manager do, from inside
+MultiBox, and it knows your pilots by name because it already reads their logs.
+
+Open it with `⧉ SYNC LAYOUT`:
+
+1. **PROFILE** — the EVE settings profile the source character launches with. Each entry
+   shows how many characters it holds and when a client last wrote to it, newest first, so
+   the profile you are actually playing on is normally at the top.
+2. **ALSO APPLY TO** — tick any other profile your accounts launch with. The launcher picks a
+   profile per account, so a fleet can be split across several. Every character file in a
+   ticked profile gets the source layout, including the source character's own copy there.
+   The gold line underneath says how many files that adds.
+3. **Source** — the character whose layout everyone gets. It defaults to whoever played most
+   recently.
+4. **Sync** — untick a character to leave its layout alone, in every profile. A new alt is
+   included automatically the first time it logs in.
+5. **SYNC NOW** — copies the source over every character marked `WILL BE OVERWRITTEN`, and
+   over every character in the ticked profiles.
+
+**Every client has to be closed.** EVE keeps its settings in memory while it runs and writes
+them back when you log out, so anything copied under a running client is undone. The window
+tells you how many clients are open — including one sitting at character select — and SYNC
+NOW stays disabled until there are none.
+
+**Sync automatically once the last EVE client closes** is the hands-off version. Change your
+layout on the source character, close all your clients, and about ten seconds after the last
+one goes MultiBox copies the layout across. The next time you launch, from the EVE launcher as
+usual, every character opens with it. MultiBox does not launch EVE, and does not need to: the
+files are already in place. The dashboard's status line reports each automatic sync.
+
+**Backups.** Before every sync, all the character files in each profile it touches are zipped
+to `%APPDATA%\MultiBox\settings-backups` (the newest ten syncs are kept). **RESTORE LAST
+BACKUP** puts back every profile the most recent sync changed, again only while every client
+is closed.
+
+What it copies and what it does not:
+
+- **Copied:** `core_char_<id>.dat` — per character: window positions and sizes, chat windows,
+  overview and other per-character UI settings.
+- **Not copied:** `core_user_<id>.dat` — per account: graphics, audio and other account-wide
+  settings. These also carry hardware-specific values, so they are left alone for now.
+- A character only gets a layout in a profile if it has logged in at least once with that
+  profile, because that is when EVE creates its file there.
+- MultiBox cannot read which profile the launcher assigns to each account; the write times in
+  the picker are the hint. Ticking a profile nobody launches with does no harm, it just
+  changes files no client reads.
+
+---
+
 ## Configuration
 
 Settings live in `%APPDATA%\MultiBox\multibox.json`, written when you close the app. Most of
@@ -228,6 +282,7 @@ it is managed from the UI; these are worth editing by hand:
 | `ShowOnlyRunningClients` | Show a card only while the client is open. Default true. |
 | `CharacterOrder` | Fleet order by name, set by dragging cards or the ordering window. |
 | `ClickToFocus` | Set false to make thumbnails inert. |
+| `SettingsSync` | Profile, source character, exclusions and auto-sync, set from `⧉ SYNC LAYOUT`. |
 
 ---
 
@@ -268,3 +323,11 @@ any that Windows refused. `F13`–`F24` are usually free.
 focus rules. Click the dashboard first, then the thumbnail.
 
 **No spoken warnings.** The machine needs a speech voice installed. Tones still work.
+
+**Settings sync says clients are open, but none are.** Any visible window titled `EVE` or
+`EVE - <name>` counts, including a client on the character-select screen. Close it fully.
+
+**A synced character still has its old layout.** It was probably logged in when the sync ran,
+or logged out after it and wrote its own settings back. Close everything and sync again. If a
+character is listed as `#<id>` rather than by name, ESI could not be reached; the sync still
+works.
