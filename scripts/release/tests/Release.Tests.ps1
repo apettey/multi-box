@@ -6,14 +6,14 @@ BeforeAll {
 
 Describe 'Get-ChangeBump' {
     It 'defaults to patch, never none' {
-        (Get-ChangeBump -Labels @() -Files @('src/MultiBox.Core/Foo.cs')).Bump | Should -Be 'patch'
+        (Get-ChangeBump -Labels @()).Bump | Should -Be 'patch'
         (Get-ChangeBump).Bump | Should -Be 'patch'
     }
-    It 'is minor when the PR touches the announcement file' {
-        (Get-ChangeBump -Files @('whats-new/features.json', 'src/x.cs')).Bump | Should -Be 'minor'
+    It 'is minor when the PR adds an announcement' {
+        (Get-ChangeBump -AddsAnnouncement).Bump | Should -Be 'minor'
     }
     It 'lets a label win over the announcement rule' {
-        (Get-ChangeBump -Labels @('semver:patch') -Files @('whats-new/features.json')).Bump | Should -Be 'patch'
+        (Get-ChangeBump -Labels @('semver:patch') -AddsAnnouncement).Bump | Should -Be 'patch'
     }
     It 'takes the biggest of several semver labels' {
         (Get-ChangeBump -Labels @('semver:patch', 'semver:major', 'semver:minor')).Bump | Should -Be 'major'
@@ -21,9 +21,23 @@ Describe 'Get-ChangeBump' {
     It 'ignores unrelated labels' {
         (Get-ChangeBump -Labels @('dependencies', 'deploy:manual', 'semver:bogus')).Bump | Should -Be 'patch'
     }
-    It 'never makes major from files alone' {
-        (Get-ChangeBump -Files @('whats-new/features.json', 'CHANGELOG.md')).Bump | Should -Not -Be 'major'
+    It 'never makes major without a label' {
+        (Get-ChangeBump -AddsAnnouncement).Bump | Should -Not -Be 'major'
     }
+}
+
+Describe 'Test-AddsAnnouncement' {
+    BeforeAll {
+        $script:one = '{"features":[{"pr":7,"date":"2026-10-01","title":"A","description":"a"}]}'
+        $script:two = '{"features":[{"pr":9,"date":"2026-10-02","title":"B","description":"b"},{"pr":7,"date":"2026-10-01","title":"A","description":"a"}]}'
+        $script:typo = '{"features":[{"pr":7,"date":"2026-10-01","title":"A!","description":"fixed"}]}'
+    }
+    It 'is true for a new pr entry' { Test-AddsAnnouncement -Before $one -After $two | Should -BeTrue }
+    It 'is true when the file is created with an entry' { Test-AddsAnnouncement -Before '' -After $one | Should -BeTrue }
+    It 'is false when an existing entry is edited' { Test-AddsAnnouncement -Before $one -After $typo | Should -BeFalse }
+    It 'is false when the file is created empty' { Test-AddsAnnouncement -Before $null -After '{"features": []}' | Should -BeFalse }
+    It 'is false when an entry is removed' { Test-AddsAnnouncement -Before $two -After $one | Should -BeFalse }
+    It 'is false for invalid JSON' { Test-AddsAnnouncement -Before $one -After '{"features": [' | Should -BeFalse }
 }
 
 Describe 'Step-SemVer' {
@@ -62,7 +76,7 @@ Describe 'Get-NextRelease' {
     It 'takes the biggest bump among several merges' {
         $r = Get-NextRelease -LatestTag 'v1.0.3' -Changes @(
             [pscustomobject]@{ Number = 15; Labels = @('dependencies'); Files = @('src/MultiBox.App/MultiBox.App.csproj') }
-            [pscustomobject]@{ Number = 16; Labels = @(); Files = @('whats-new/features.json') }
+            [pscustomobject]@{ Number = 16; Labels = @(); Files = @('whats-new/features.json'); AddsAnnouncement = $true }
         )
         $r.Release | Should -BeTrue
         $r.Bump | Should -Be 'minor'
@@ -103,13 +117,14 @@ Describe 'Get-NextRelease' {
 
 Describe 'Test-Announcements' {
     It 'accepts an empty list' {
-        Test-Announcements -Json '{"features": []}' | Should -BeNullOrEmpty
+        @(Test-Announcements -Json '{"features": []}').Count | Should -Be 0
     }
     It 'accepts a complete entry' {
         $json = '{"features":[{"pr":42,"date":"2026-10-17","title":"Export","description":"Does a thing.\n\nOn the header.","images":[{"src":"whats-new/img/pr-42-x.png","caption":"Header"}]}]}'
-        Test-Announcements -Json $json | Should -BeNullOrEmpty
+        @(Test-Announcements -Json $json).Count | Should -Be 0
     }
     It 'rejects invalid JSON' {
+        @(Test-Announcements -Json '{"features": [').Count | Should -Be 1
         Test-Announcements -Json '{"features": [' | Should -Match 'not valid JSON'
     }
     It 'rejects a missing features array' {

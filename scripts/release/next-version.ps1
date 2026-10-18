@@ -45,6 +45,18 @@ function Get-VersionTags([string]$At) {
     @(Invoke-Git tag --merged $At --list 'v*' --sort=-v:refname | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' })
 }
 
+function Get-FileAt([string]$At, [string]$Path) {
+    if (-not $At) { return '' }
+    $text = (git show "${At}:$Path" 2>$null) -join "`n"
+    $global:LASTEXITCODE = 0
+    return $text
+}
+
+function Test-ChangeAddsAnnouncement([string]$Before, [string]$After, [string[]]$Files) {
+    if ($Files -notcontains 'whats-new/features.json') { return $false }
+    return Test-AddsAnnouncement -Before (Get-FileAt $Before 'whats-new/features.json') -After (Get-FileAt $After 'whats-new/features.json')
+}
+
 function Get-CommitChange([string]$Sha) {
     $message = (Invoke-Git log -1 --format=%s $Sha) -join ''
     $parents = @((Invoke-Git log -1 --format=%P $Sha) -split ' ' | Where-Object { $_ })
@@ -58,10 +70,12 @@ function Get-CommitChange([string]$Sha) {
     if ($LASTEXITCODE -eq 0 -and $pulls) {
         $pr = @($pulls | Where-Object { $_.merge_commit_sha -eq $Sha }) + @($pulls) | Select-Object -First 1
     }
+    $parent = if ($parents.Count -gt 0) { $parents[0] } else { '' }
     [pscustomobject]@{
         Sha     = $Sha
         Message = $message
         Files   = $files
+        AddsAnnouncement = (Test-ChangeAddsAnnouncement $parent $Sha $files)
         Number  = if ($pr) { [int]$pr.number } else { 0 }
         Title   = if ($pr) { [string]$pr.title } else { $message }
         Labels  = if ($pr) { @($pr.labels | ForEach-Object { $_.name }) } else { @() }
@@ -81,8 +95,10 @@ if ($PullRequest -gt 0) {
     $changes = @(Get-ChangesSince $latest $BaseRef)
     $view = gh pr view $PullRequest --repo $Repo --json number,title,labels | ConvertFrom-Json
     $prFiles = @(Invoke-Git diff --name-only "$BaseRef...$headSha")
+    $mergeBase = (Invoke-Git merge-base $BaseRef $headSha) -join ''
     $changes += [pscustomobject]@{
         Sha = $headSha; Message = $view.title; Files = $prFiles
+        AddsAnnouncement = (Test-ChangeAddsAnnouncement $mergeBase $headSha $prFiles)
         Number = [int]$view.number; Title = $view.title
         Labels = @($view.labels | ForEach-Object { $_.name })
     }

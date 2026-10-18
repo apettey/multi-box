@@ -21,11 +21,12 @@ function Get-ChangeBump {
     <#
     .SYNOPSIS
         Bump for one merged PR (or direct push): a semver:* label wins (largest if several),
-        else adding to the announcement file means minor, else patch. Never none.
+        else adding an announcement entry (a new "pr" in whats-new/features.json) means minor,
+        else patch. Editing an existing entry is not an addition. Never none.
     #>
     param(
         [string[]]$Labels = @(),
-        [string[]]$Files = @()
+        [switch]$AddsAnnouncement
     )
     $labelBumps = @($Labels | Where-Object { $_ -match '^semver:(major|minor|patch)$' } |
         ForEach-Object { $_ -replace '^semver:', '' })
@@ -33,10 +34,34 @@ function Get-ChangeBump {
         $best = $labelBumps | Sort-Object { $script:BumpRank[$_] } -Descending | Select-Object -First 1
         return [pscustomobject]@{ Bump = $best; Reason = "label semver:$best" }
     }
-    if ($Files -contains $script:AnnouncementFile) {
+    if ($AddsAnnouncement) {
         return [pscustomobject]@{ Bump = 'minor'; Reason = "adds an announcement ($script:AnnouncementFile)" }
     }
     return [pscustomobject]@{ Bump = 'patch'; Reason = 'default' }
+}
+
+function Get-AnnouncedPr {
+    <#
+    .SYNOPSIS
+        The "pr" numbers in a whats-new/features.json document. Missing or invalid JSON gives
+        none, so a broken file never decides a version (CI rejects it separately).
+    #>
+    param([AllowEmptyString()][AllowNull()][string]$Json)
+    if ([string]::IsNullOrWhiteSpace($Json)) { return @() }
+    try { $doc = $Json | ConvertFrom-Json -ErrorAction Stop } catch { return @() }
+    if ($null -eq $doc -or -not $doc.PSObject.Properties['features']) { return @() }
+    @($doc.features | ForEach-Object { Get-Prop $_ 'pr' } | Where-Object { $_ -is [long] -or $_ -is [int] } |
+        ForEach-Object { [long]$_ })
+}
+
+function Test-AddsAnnouncement {
+    <# .SYNOPSIS True when the "after" announcement file has a pr number the "before" one lacks. #>
+    param(
+        [AllowEmptyString()][AllowNull()][string]$Before,
+        [AllowEmptyString()][AllowNull()][string]$After
+    )
+    $old = @(Get-AnnouncedPr $Before)
+    return [bool](@(Get-AnnouncedPr $After | Where-Object { $old -notcontains $_ }).Count)
 }
 
 function Step-SemVer {
@@ -75,7 +100,8 @@ function Get-NextRelease {
     <#
     .SYNOPSIS
         Next version for a set of unreleased changes. Each change is an object with
-        Labels, Files and optionally Number/Title (the PR) and Message (the commit).
+        Labels, Files, AddsAnnouncement and optionally Number/Title (the PR) and Message
+        (the commit).
         Bookkeeping commits are dropped; if nothing is left there is nothing to release.
     #>
     param(
@@ -94,7 +120,7 @@ function Get-NextRelease {
     }
     $best = 'patch'; $reasons = @()
     foreach ($c in $real) {
-        $b = Get-ChangeBump -Labels @(Get-Prop $c 'Labels') -Files @(Get-Prop $c 'Files')
+        $b = Get-ChangeBump -Labels @(Get-Prop $c 'Labels') -AddsAnnouncement:([bool](Get-Prop $c 'AddsAnnouncement'))
         $number = Get-Prop $c 'Number'
         $who = if ($number) { "#$number" } else { 'direct push' }
         $reasons += "$who=$($b.Bump) ($($b.Reason))"
@@ -111,14 +137,15 @@ function Get-NextRelease {
 function Test-Announcements {
     <#
     .SYNOPSIS
-        Validates whats-new/features.json. Returns a list of error strings (empty = valid).
+        Validates whats-new/features.json. Returns the error strings (nothing = valid); wrap
+        the call in @() to count them.
     #>
     param([Parameter(Mandatory)][AllowEmptyString()][string]$Json)
     $errors = [System.Collections.Generic.List[string]]::new()
     try { $doc = $Json | ConvertFrom-Json -ErrorAction Stop }
-    catch { $errors.Add("not valid JSON: $($_.Exception.Message)"); return , $errors.ToArray() }
+    catch { $errors.Add("not valid JSON: $($_.Exception.Message)"); return $errors.ToArray() }
     if ($null -eq $doc -or -not $doc.PSObject.Properties['features'] -or $doc.features -isnot [array]) {
-        $errors.Add('top level must be an object with a "features" array'); return , $errors.ToArray()
+        $errors.Add('top level must be an object with a "features" array'); return $errors.ToArray()
     }
     $seen = @{}
     $i = 0
@@ -150,7 +177,7 @@ function Test-Announcements {
         }
         $i++
     }
-    return , $errors.ToArray()
+    return $errors.ToArray()
 }
 
 function Get-ChangeLogRows {
@@ -264,5 +291,5 @@ function Set-ProjectVersion {
     return [regex]::Replace($Content, '<Version>[^<]*</Version>', "<Version>$Version</Version>", 1)
 }
 
-Export-ModuleMember -Function Get-ChangeBump, Step-SemVer, Test-BookkeepingCommit, Get-NextRelease,
+Export-ModuleMember -Function Get-ChangeBump, Get-AnnouncedPr, Test-AddsAnnouncement, Step-SemVer, Test-BookkeepingCommit, Get-NextRelease,
     Test-Announcements, Get-ChangeLogRows, New-ReleaseNotes, Update-Changelog, Set-ProjectVersion

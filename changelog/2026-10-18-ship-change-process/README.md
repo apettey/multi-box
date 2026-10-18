@@ -18,7 +18,7 @@ publishes the next version, and installed copies auto-update to it.
   unversioned changes".
 - **Announcements:** `whats-new/features.json` (empty), validated in CI, used for Release notes until the app has a
   What's New view.
-- **Versioning:** `scripts/release/Release.psm1` (pure bump, notes and changelog logic, 38 Pester tests),
+- **Versioning:** `scripts/release/Release.psm1` (pure bump, notes and changelog logic, 44 Pester tests),
   `next-version.ps1` (gathers PR labels and files via git and `gh`), `finalize.ps1` (notes, `CHANGELOG.md`,
   `<Version>` bookkeeping commit; `-DryRun`), `validate-announcements.ps1`. `scripts/release.ps1` is removed.
 - **CI:** new `.github/workflows/ci.yml` on PRs: tests, full build, Pester, PSScriptAnalyzer, actionlint, announcement
@@ -29,7 +29,7 @@ publishes the next version, and installed copies auto-update to it.
   `version` / `release-tag` / `prerelease` inputs in `apettey/eve-contracts`' `build-windows-app.yml`, merged first.
 - **Screenshots:** `scripts/capture-window.ps1` captures a MultiBox window at a fixed size (dev tooling; not shipped,
   touches no EVE window). No new native calls, file writes or outbound hosts in the app.
-- **Tested:** Pester suite (38/38) and PSScriptAnalyzer on macOS with pwsh 7; `next-version.ps1` against the real
+- **Tested:** Pester suite (44/44) and PSScriptAnalyzer on macOS with pwsh 7; `next-version.ps1` against the real
   history (gives v1.0.4 for #15 + #16, and "already released" for v1.0.3); `finalize.ps1 -DryRun`; actionlint on both
   workflows. Not run: the workflows themselves (first run is this PR's CI and its merge), and `capture-window.ps1`,
   which needs Windows.

@@ -163,8 +163,8 @@ Collected because each one cost real time:
 Nobody cuts releases by hand. `.github/workflows/release.yml` runs on every push to `main`:
 
 1. `scripts/release/next-version.ps1` works out the next `vX.Y.Z` from the PRs merged since the
-   last tag: a `semver:major|minor|patch` label wins, a PR that touches `whats-new/features.json`
-   is minor, everything else is patch. There is no skip.
+   last tag: a `semver:major|minor|patch` label wins, a PR that adds a `whats-new/features.json`
+   entry is minor, everything else is patch. There is no skip.
 2. The shared Windows build (`apettey/eve-contracts`) tests, publishes and Velopack-packs that
    version, then tags the commit and publishes the GitHub Release. Installed copies auto-update
    from it; a `deploy:manual` label makes it a prerelease they ignore until promoted.

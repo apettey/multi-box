@@ -6,7 +6,8 @@ SemVer `MAJOR.MINOR.PATCH`, tag `vX.Y.Z`, worked out automatically when a PR mer
 (`scripts/release/Release.psm1`, `Get-ChangeBump` / `Get-NextRelease`):
 
 1. A label wins: `semver:major`, `semver:minor` or `semver:patch` (with several labels, the biggest wins).
-2. Otherwise, a PR that touches `whats-new/features.json` (adds an announcement) is **minor**. A visible *fix* also
+2. Otherwise, a PR that adds an entry (a new `pr` number) to `whats-new/features.json` is **minor**; editing an
+   existing entry is not an addition. A visible *fix* also
    gets an announcement entry, so label it `semver:patch`.
 3. Everything else is **patch**: fixes, refactors, CI, dependency bumps (Dependabot included), docs, process, and
    direct pushes to `main`.
