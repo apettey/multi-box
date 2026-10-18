@@ -49,7 +49,7 @@ jobs:
 
       - name: Compute version
         id: next
-        uses: apettey/eve-contracts/.github/actions/next-version@main
+        uses: apettey/eve-contracts/.github/actions/next-version@3bdd873c355fe42dfe926c52dab0a4c6713dec0e # v1.1.5
         with:
           # the finalize job's bookkeeping commit touches only these; it never causes a release
           bookkeeping-paths: CHANGELOG.md,src/MultiBox.App/MultiBox.App.csproj
@@ -59,7 +59,7 @@ jobs:
   build:
     needs: version
     if: needs.version.outputs.release == 'true'
-    uses: apettey/eve-contracts/.github/workflows/build-windows-app.yml@main
+    uses: apettey/eve-contracts/.github/workflows/build-windows-app.yml@3bdd873c355fe42dfe926c52dab0a4c6713dec0e # v1.1.5
     permissions:
       contents: write
     with:
@@ -87,7 +87,7 @@ jobs:
           fetch-depth: 0
 
       - name: Release notes, CHANGELOG.md and <Version>
-        uses: apettey/eve-contracts/.github/actions/finalize-release@main
+        uses: apettey/eve-contracts/.github/actions/finalize-release@3bdd873c355fe42dfe926c52dab0a4c6713dec0e # v1.1.5
         with:
           tag: ${{ needs.version.outputs.tag }}
           notes: ${{ needs.version.outputs.notes }}

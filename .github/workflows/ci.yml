@@ -53,7 +53,7 @@ jobs:
       # HEAD is the PR merged into the current base, so HEAD^1 is that base (the event's
       # base.sha can be stale on labeled/edited runs).
       - name: Validate whats-new/features.json
-        uses: apettey/eve-contracts/.github/actions/validate-features@main
+        uses: apettey/eve-contracts/.github/actions/validate-features@3bdd873c355fe42dfe926c52dab0a4c6713dec0e # v1.1.5
         with:
           base: HEAD^1
           pr: ${{ github.event.pull_request.number }}
@@ -74,7 +74,7 @@ jobs:
       # preview is what merging releases (the PR on top of any unreleased merges on main).
       - name: Version this PR would release
         id: preview
-        uses: apettey/eve-contracts/.github/actions/next-version@main
+        uses: apettey/eve-contracts/.github/actions/next-version@3bdd873c355fe42dfe926c52dab0a4c6713dec0e # v1.1.5
         with:
           mode: pr
           base: HEAD^1
@@ -105,7 +105,7 @@ jobs:
   # proven before merge. Non-tag runs publish nothing; write is only there because the shared
   # workflow's job declares it (a caller can't grant less). Fork PRs get a read-only token.
   windows-build:
-    uses: apettey/eve-contracts/.github/workflows/build-windows-app.yml@main
+    uses: apettey/eve-contracts/.github/workflows/build-windows-app.yml@3bdd873c355fe42dfe926c52dab0a4c6713dec0e # v1.1.5
     permissions:
       contents: write
     with:
