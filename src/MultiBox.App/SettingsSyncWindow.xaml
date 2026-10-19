@@ -85,7 +85,8 @@
             </Grid>
 
             <!-- The launcher assigns a profile per account, so one fleet can read its settings
-                 from several folders. Ticking one copies the source layout into it too. -->
+                 from several folders. A ticked profile either gets this profile's layout, or is
+                 synced within itself so each profile keeps its own layout. -->
             <Grid Margin="0,10,0,0">
                 <Grid.Style>
                     <Style TargetType="Grid">
@@ -104,6 +105,18 @@
                            TextWrapping="Wrap" FontFamily="{StaticResource Mono}" FontSize="9"
                            Foreground="{x:Static local:Palette.TextMuted}"/>
                 <StackPanel Grid.Column="1">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <RadioButton GroupName="SyncMode" IsChecked="{Binding CopyInto}" Margin="0,0,18,0"
+                                     ToolTip="Every ticked profile ends up with the selected profile's layout">
+                            <TextBlock Text="Copy this profile's layout into them" FontFamily="{StaticResource Mono}"
+                                       FontSize="10" Foreground="{x:Static local:Palette.TextSecondary}"/>
+                        </RadioButton>
+                        <RadioButton GroupName="SyncMode" IsChecked="{Binding WithinEach}"
+                                     ToolTip="Each ticked profile keeps its own layout; its characters get the source character's copy in that profile">
+                            <TextBlock Text="Sync each one within itself" FontFamily="{StaticResource Mono}"
+                                       FontSize="10" Foreground="{x:Static local:Palette.TextSecondary}"/>
+                        </RadioButton>
+                    </StackPanel>
                     <ItemsControl ItemsSource="{Binding OtherProfiles}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>

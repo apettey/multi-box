@@ -43,6 +43,7 @@ layouts the same way, and so an existing arrangement can be imported rather than
     "ProfilePath": "C:\\Users\\you\\AppData\\Local\\CCP\\EVE\\c_eve_sharedcache_tq_tranquility\\settings_Default",
     "SourceCharacterId": 1899648001,
     "AlsoApplyToProfilePaths": [],
+    "Mode": "CopyInto",
     "ExcludedCharacterIds": [],
     "AutoSync": false,
     "KeepBackups": 10,
@@ -159,7 +160,8 @@ Managed from `⧉ SYNC LAYOUT`; see the user guide.
 |---|---|---|
 | `SettingsSync.ProfilePath` | `null` | the `settings_<Profile>` folder to sync within |
 | `SettingsSync.SourceCharacterId` | `0` | character whose `core_char_<id>.dat` is copied; `0` disables sync |
-| `SettingsSync.AlsoApplyToProfilePaths` | `[]` | other `settings_<Profile>` folders that also get the source layout, over every character file there (the source character's own copy included) |
+| `SettingsSync.AlsoApplyToProfilePaths` | `[]` | other `settings_<Profile>` folders that a sync also covers, as `Mode` says |
+| `SettingsSync.Mode` | `"CopyInto"` | `"CopyInto"`: those profiles get the selected profile's layout, over every character file there (the source character's own copy included). `"WithinEach"`: each is synced within itself from the source character's own copy there, so every profile keeps its own layout; a profile the source has never logged in with is skipped |
 | `SettingsSync.ExcludedCharacterIds` | `[]` | characters left alone, in every profile. Everyone else is a target, so new alts are included |
 | `SettingsSync.AutoSync` | `false` | sync by itself once every EVE client has been closed for ten seconds |
 | `SettingsSync.KeepBackups` | `10` | syncs whose backups are kept in `%APPDATA%\MultiBox\settings-backups` (one zip per profile touched) |

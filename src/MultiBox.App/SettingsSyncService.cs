@@ -58,23 +58,10 @@ public sealed class SettingsSyncService
         DateTime newest;
         try
         {
-            var files = EveSettingsLocator.CharacterFiles(Settings.ProfilePath!);
-            if (files.All(f => f.CharacterId != Settings.SourceCharacterId))
+            var plan = SettingsSyncPlanner.BuildFromDisk(Settings);
+            if (SettingsSyncPlanner.NewestWrite(plan, Settings.SourceCharacterId) is not { } written)
                 return;
-
-            // Any involved file in any profile: a layout changed on an alt in another
-            // profile is as much a reason to re-sync as one changed on the source.
-            var involved = Settings.TargetsAmong(files.Select(f => f.CharacterId)).Append(Settings.SourceCharacterId).ToHashSet();
-            newest = files.Where(f => involved.Contains(f.CharacterId)).Max(f => f.LastWriteUtc);
-
-            foreach (var other in Settings.OtherProfiles())
-            {
-                var otherFiles = EveSettingsLocator.CharacterFiles(other);
-                var targets = Settings.TargetsInOtherProfile(otherFiles.Select(f => f.CharacterId)).ToHashSet();
-                foreach (var file in otherFiles.Where(f => targets.Contains(f.CharacterId)))
-                    if (file.LastWriteUtc > newest)
-                        newest = file.LastWriteUtc;
-            }
+            newest = written;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -113,35 +100,24 @@ public sealed class SettingsSyncService
             throw new InvalidOperationException(
                 "Close every EVE client first - a running client writes its own settings back when it logs out.");
 
-        var profile = Settings.ProfilePath!;
-        var sync = CreateSync();
-        var batch = Guid.NewGuid();
+        var plan = SettingsSyncPlanner.BuildFromDisk(Settings);
+        if (plan.Steps.Count == 0)
+            throw new InvalidOperationException("The source character has no settings file in the selected profile.");
 
-        var available = EveSettingsLocator.CharacterFiles(profile).Select(f => f.CharacterId);
-        var main = sync.Apply(profile, Settings.SourceCharacterId, Settings.TargetsAmong(available), batch);
-
-        var copied = main.Copied.ToList();
-        var profiles = main.Copied.Count > 0 ? 1 : 0;
-        foreach (var other in Settings.OtherProfiles().Where(Directory.Exists))
-        {
-            var there = EveSettingsLocator.CharacterFiles(other).Select(f => f.CharacterId);
-            var applied = sync.Apply(profile, Settings.SourceCharacterId, other,
-                Settings.TargetsInOtherProfile(there), batch);
-            copied.AddRange(applied.Copied);
-            if (applied.Copied.Count > 0)
-                profiles++;
-        }
-
-        var result = new SyncResult(main.BackupPath, copied);
+        var result = SettingsSyncPlanner.Run(plan, Settings.SourceCharacterId, CreateSync(), Guid.NewGuid());
+        var profiles = plan.Steps.Count(s => s.Targets.Count > 0);
 
         Settings.LastSyncUtc = DateTime.UtcNow;
         _failedOn = null;
         _saveConfig();
 
         var how = automatic ? "after the last client closed" : "on request";
-        Synced?.Invoke(result.Copied.Count == 0
+        var skipped = plan.SkippedProfiles.Count == 0
+            ? string.Empty
+            : $" Skipped {plan.SkippedProfiles.Count} profile(s) the source character has never logged in with.";
+        Synced?.Invoke((result.Copied.Count == 0
             ? $"Settings sync {how}: nothing to copy."
-            : $"Synced layout to {result.Copied.Count} character file(s) in {profiles} profile(s) {how}.");
+            : $"Synced layout to {result.Copied.Count} character file(s) in {profiles} profile(s) {how}.") + skipped);
         return result;
     }
 }

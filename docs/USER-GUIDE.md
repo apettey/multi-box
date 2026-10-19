@@ -223,15 +223,22 @@ Open it with `⧉ SYNC LAYOUT`:
    shows how many characters it holds and when a client last wrote to it, newest first, so
    the profile you are actually playing on is normally at the top.
 2. **ALSO APPLY TO** — tick any other profile your accounts launch with. The launcher picks a
-   profile per account, so a fleet can be split across several. Every character file in a
-   ticked profile gets the source layout, including the source character's own copy there.
-   The gold line underneath says how many files that adds.
+   profile per account, so a fleet can be split across several. Choose what happens to them:
+   - **Copy this profile's layout into them** — every ticked profile ends up with the selected
+     profile's layout, including over the source character's own copy there.
+   - **Sync each one within itself** — for when each profile is a different layout on purpose
+     (say single-screen and split-screen). Every character in a ticked profile gets the source
+     character's layout *from that same profile*, so each profile stays different but is
+     consistent inside. A profile the source character has never logged in with has no layout
+     to copy from and is skipped.
+
+   The gold line underneath says how many files that touches, and which profiles are skipped.
 3. **Source** — the character whose layout everyone gets. It defaults to whoever played most
    recently.
 4. **Sync** — untick a character to leave its layout alone, in every profile. A new alt is
    included automatically the first time it logs in.
 5. **SYNC NOW** — copies the source over every character marked `WILL BE OVERWRITTEN`, and
-   over every character in the ticked profiles.
+   over every character in the ticked profiles, as the choice above says.
 
 **Every client has to be closed.** EVE keeps its settings in memory while it runs and writes
 them back when you log out, so anything copied under a running client is undone. The window
