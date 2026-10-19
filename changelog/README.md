@@ -9,6 +9,7 @@ players. Internal changes start with `Internal:`.
 
 | Date | Change | Summary |
 | --- | --- | --- |
+| 2026-10-19 | [Sync each profile within itself](2026-10-19-settings-sync-within-profiles/README.md) | Settings sync can keep a different layout per launcher profile: "Sync each one within itself" syncs every ticked profile from your main character's own copy there |
 | 2026-10-18 | [Pin the shared release actions](2026-10-18-pin-shared-actions/README.md) | Internal: release and CI use the shared eve-contracts actions pinned to a commit, updated by Dependabot PRs, instead of `@main` |
 | 2026-10-18 | [Shared release versioning](2026-10-18-shared-versioning/README.md) | Internal: versioning, release notes and CHANGELOG.md now come from the release code shared with the other apps; same rules, nothing changes for players |
 | 2026-10-18 | [Ship-change process](2026-10-18-ship-change-process/README.md) | Internal: every merge to main is now released automatically; one process for tests, screenshots, release log and review |
