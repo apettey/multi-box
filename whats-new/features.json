@@ -1,3 +1,16 @@
 {
-  "features": []
+  "features": [
+    {
+      "pr": 21,
+      "date": "2026-10-19",
+      "title": "Sync each profile within itself",
+      "description": "Settings sync can now keep a different layout per launcher profile. Open SYNC LAYOUT in the header, tick your other profiles under Also apply to, and choose \"Sync each one within itself\": every character in each profile gets your main character's layout from that same profile.\n\nProfiles your main character has never logged in with are skipped and named, and everything is backed up first.",
+      "images": [
+        {
+          "src": "whats-new/img/pr-21-settings-sync-within-profiles.png",
+          "caption": "The SYNC LAYOUT window, with Sync each one within itself chosen under Also apply to"
+        }
+      ]
+    }
+  ]
 }

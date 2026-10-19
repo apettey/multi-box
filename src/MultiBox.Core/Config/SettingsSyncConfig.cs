@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using MultiBox.Core.Settings;
 
 namespace MultiBox.Core.Config;
 
@@ -17,11 +18,19 @@ public sealed class SettingsSyncConfig
     public long SourceCharacterId { get; set; }
 
     /// <summary>
-    /// Other <c>settings_&lt;Profile&gt;</c> folders that also receive the source layout. The
-    /// launcher assigns a profile per account, so a fleet split across accounts can read its
-    /// settings from several folders; each character's file in each of these is overwritten.
+    /// Other <c>settings_&lt;Profile&gt;</c> folders a sync also covers. The launcher assigns a
+    /// profile per account, so a fleet split across accounts can read its settings from several
+    /// folders. What happens in each is set by <see cref="Mode"/>.
     /// </summary>
     public List<string> AlsoApplyToProfilePaths { get; set; } = new();
+
+    /// <summary>
+    /// Whether the ticked profiles receive the selected profile's layout (<c>CopyInto</c>), or
+    /// are each synced within themselves from the source character's copy there
+    /// (<c>WithinEach</c>), keeping a different layout per profile. Written as its name.
+    /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter<SettingsSyncMode>))]
+    public SettingsSyncMode Mode { get; set; } = SettingsSyncMode.CopyInto;
 
     /// <summary>Characters left alone, for an alt that deliberately keeps its own layout.</summary>
     public List<long> ExcludedCharacterIds { get; set; } = new();

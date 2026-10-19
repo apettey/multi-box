@@ -77,12 +77,13 @@ only works on made-up data cannot pass.
 | `ConfigAndAlertTests` | config round-trip, eve-o-preview import, EWAR hold behaviour |
 | `RunningClientTests` | cards for open clients that have written no log, id lookup, placeholder hand-off |
 | `SettingsSyncTests` | settings folder discovery, copy within and across profiles, batch backup and restore, that nothing but `core_char_<id>.dat` is written, the auto-sync timing rules |
+| `SettingsSyncPlannerTests` | the two ways ticked profiles are synced (copy one layout into them, or sync each within itself), skipped profiles, exclusions, more than ten characters, restore |
 | `EulaComplianceTests` | banned APIs, the native allow-list, read-only log access, the file-write allow-list, outbound hosts |
 
-Settings files are opaque binary that MultiBox never parses, so `SettingsSyncTests` uses
+Settings files are opaque binary that MultiBox never parses, so the settings sync tests use
 stand-in bytes in a temporary folder rather than a sample from `samples/`.
 
-172 tests total, ~430 ms. The table lists the main suites, not every file.
+185 tests total, ~510 ms. The table lists the main suites, not every file.
 
 ### The coverage test
 

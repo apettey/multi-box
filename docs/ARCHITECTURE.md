@@ -30,7 +30,7 @@ from a Mac via `-p:EnableWindowsTargeting=true`.
 | `src/MultiBox.Core` | `net10.0` | discovery, tailing, parsing, dedup, stats, config, ESI |
 | `src/MultiBox.App` | `net10.0-windows` | WPF dashboard, audio alerts, window interop |
 | `src/MultiBox.Replay` | `net10.0` | console diagnostics (`doctor`, `replay`, `chat`) |
-| `tests/MultiBox.Core.Tests` | `net10.0` | 172 xunit tests, mostly against real logs |
+| `tests/MultiBox.Core.Tests` | `net10.0` | 185 xunit tests, mostly against real logs |
 
 `MultiBox.Core` has **no third-party dependencies** — `System.Text.Json` and
 `System.Net.Http` only.
@@ -183,15 +183,19 @@ The portable half lives in `MultiBox.Core/Settings`:
   `POST /universe/names/`.
 - `CharacterSettingsSync` zips every character file in the target profile to
   `%APPDATA%\MultiBox\settings-backups`, then copies the source over each target through a
-  temporary file and a rename. The source and target profiles can differ: the launcher assigns
-  a profile per account, so a fleet can read from several folders, and "also apply to" copies
-  the source layout into each. Every zip from one sync shares a batch id, so restoring and
-  pruning treat a multi-profile sync as one unit.
+  temporary file and a rename. The source and target profiles can differ. Every zip from one
+  sync shares a batch id, so restoring and pruning treat a multi-profile sync as one unit.
+  Target paths are built from a numeric id, so nothing but a `core_char_<id>.dat` can be
+  addressed. It is one of the two files the EULA test allows to write to disk.
+- `SettingsSyncPlanner` turns the settings into copy steps. The launcher assigns a profile per
+  account, so a fleet can read from several folders, and the profiles ticked under "also apply
+  to" are handled by `SettingsSyncMode`: `CopyInto` copies the selected profile's source file
+  into each, while `WithinEach` syncs each one from the source character's own copy there, so
+  every profile keeps its own layout. A `WithinEach` profile without that copy is skipped. The
+  window's summary line and the sync both read the same plan.
 - `EveSettingsLocator.FindProfiles` reports each profile's character count and newest write.
   A client rewrites its profile at every logout, so the newest is the best local hint of which
-  profile is in use; the launcher's own per-account choice is not read. Target paths are built from a numeric id, so nothing but a
-  `core_char_<id>.dat` can be addressed. It is one of the two files the EULA test allows to
-  write to disk.
+  profile is in use; the launcher's own per-account choice is not read.
 - `AutoSyncGate` decides when an automatic sync is due: no EVE window for ten seconds, no
   settings file written for ten seconds (a closing client flushes after its window goes), and
   something changed since the last sync.

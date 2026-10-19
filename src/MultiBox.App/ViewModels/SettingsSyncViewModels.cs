@@ -89,8 +89,29 @@ public sealed class SettingsSyncViewModel : ObservableObject
     private Brush _clientsBrush = Palette.TextMuted;
     public Brush ClientsBrush { get => _clientsBrush; private set => Set(ref _clientsBrush, value); }
 
-    public bool CanSync => _openClients == 0 && Settings.IsConfigured &&
-                           (Rows.Any(r => r.IsTarget) || OtherProfiles.Any(p => p.IsChecked));
+    // From the plan the sync will run, so SYNC NOW is never offered for a sync with nothing to
+    // copy (for instance every ticked profile skipped and every row unticked). The count is
+    // worked out when a choice changes, not here: this getter runs every second from the
+    // client timer, and reading folders on each tick would be wasted work on the UI thread.
+    public bool CanSync => _openClients == 0 && Settings.IsConfigured && _planTargets > 0;
+
+    private int _planTargets;
+
+    /// <summary>Recounts what a sync would copy after any choice that changes it.</summary>
+    private void RecomputePlan()
+    {
+        try
+        {
+            _planTargets = SettingsSyncPlanner.BuildFromDisk(Settings).TargetCount;
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            // A folder that cannot be read offers nothing to sync; SyncNow would refuse anyway.
+            _planTargets = 0;
+        }
+
+        Raise(nameof(CanSync));
+    }
 
     /// <summary>How many more files the ticked profiles add, so the reach of a sync is visible.</summary>
     public string AlsoApplySummary
@@ -101,12 +122,62 @@ public sealed class SettingsSyncViewModel : ObservableObject
             if (ticked.Count == 0)
                 return "Only the profile above is changed.";
 
-            var files = ticked.Sum(p => Settings.TargetsInOtherProfile(
-                EveSettingsLocator.CharacterFiles(p.Path).Select(f => f.CharacterId)).Count);
-            return $"Also overwrites {files} character file(s) in {ticked.Count} other profile(s), " +
-                   "including the source character's own copy there. Unticked characters are left alone in every profile.";
+            // The same plan the sync runs, so this line can't promise something it won't do.
+            SyncPlan plan;
+            try
+            {
+                plan = SettingsSyncPlanner.BuildFromDisk(Settings);
+            }
+            catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+            {
+                return "A ticked profile folder could not be read: " + e.Message;
+            }
+            var others = plan.Steps.Skip(1).ToList();
+            var files = others.Sum(s => s.Targets.Count);
+
+            var text = CopyInto
+                ? $"Copies this profile's layout over {files} character file(s) in {others.Count} other profile(s), " +
+                  "including the source character's own copy there."
+                : $"Syncs {others.Count} other profile(s) within themselves, {files} character file(s) in all, " +
+                  $"each from {NameFor(Settings.SourceCharacterId)}'s own copy there. Each profile keeps its own layout.";
+
+            if (plan.SkippedProfiles.Count > 0)
+                text += " Skipped, because they hold no copy of the source character's settings: " +
+                        string.Join(", ", plan.SkippedProfiles.Select(ProfileName)) + ".";
+
+            return text + " Unticked characters are left alone in every profile.";
         }
     }
+
+    /// <summary>The ticked profiles all get this profile's layout.</summary>
+    public bool CopyInto
+    {
+        get => Settings.Mode == SettingsSyncMode.CopyInto;
+        set { if (value) SetMode(SettingsSyncMode.CopyInto); }
+    }
+
+    /// <summary>Each ticked profile keeps its own layout and is synced within itself.</summary>
+    public bool WithinEach
+    {
+        get => Settings.Mode == SettingsSyncMode.WithinEach;
+        set { if (value) SetMode(SettingsSyncMode.WithinEach); }
+    }
+
+    private void SetMode(SettingsSyncMode mode)
+    {
+        if (Settings.Mode == mode)
+            return;
+
+        Settings.Mode = mode;
+        Raise(nameof(CopyInto));
+        Raise(nameof(WithinEach));
+        Raise(nameof(AlsoApplySummary));
+        RecomputePlan();
+    }
+
+    private string ProfileName(string path) =>
+        Profiles.FirstOrDefault(p => p.Path.Equals(path, StringComparison.OrdinalIgnoreCase))?.Name
+        ?? System.IO.Path.GetFileName(path);
 
     private void LoadOtherProfiles()
     {
@@ -127,7 +198,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
     {
         Settings.AlsoApplyToProfilePaths = OtherProfiles.Where(p => p.IsChecked).Select(p => p.Path).ToList();
         Raise(nameof(AlsoApplySummary));
-        Raise(nameof(CanSync));
+        RecomputePlan();
     }
 
     public string LastSyncText => Settings.LastSyncUtc is { } last
@@ -179,7 +250,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
             Rows.Add(row);
         }
 
-        Raise(nameof(CanSync));
+        RecomputePlan();
         _ = ResolveUnknownNamesAsync();
     }
 
@@ -197,7 +268,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
         Settings.ExcludedCharacterIds = Rows.Where(r => !r.Included).Select(r => r.CharacterId).ToList();
         foreach (var r in Rows)
             r.Refresh();
-        Raise(nameof(CanSync));
+        RecomputePlan();
         Raise(nameof(AlsoApplySummary));
     }
 
@@ -230,6 +301,9 @@ public sealed class SettingsSyncViewModel : ObservableObject
             foreach (var row in Rows.Where(r => r.CharacterId == id))
                 row.Name = name;
         }
+
+        // The summary names the source character, which may only now have a name.
+        Raise(nameof(AlsoApplySummary));
     }
 
     public void SyncNow()
@@ -239,7 +313,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
             var result = _service.SyncNow();
             Message = result.Copied.Count == 0
                 ? "Nothing to copy."
-                : $"Copied {NameFor(Settings.SourceCharacterId)}'s layout to {result.Copied.Count} character file(s). The originals are backed up.";
+                : $"Synced {NameFor(Settings.SourceCharacterId)}'s layout to {result.Copied.Count} character file(s). The originals are backed up.";
         }
         catch (Exception e)
         {
@@ -305,6 +379,7 @@ public sealed class ProfileOptionViewModel : ObservableObject
     public ProfileOptionViewModel(SettingsProfile profile) => _profile = profile;
 
     public string Path => _profile.Path;
+    public string Name => _profile.Name;
 
     /// <summary>"Split_Screen · 12 character(s) · last written today 21:00".</summary>
     public string Label
