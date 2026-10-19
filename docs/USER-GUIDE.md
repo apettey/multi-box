@@ -229,8 +229,9 @@ Open it with `⧉ SYNC LAYOUT`:
    - **Sync each one within itself** — for when each profile is a different layout on purpose
      (say single-screen and split-screen). Every character in a ticked profile gets the source
      character's layout *from that same profile*, so each profile stays different but is
-     consistent inside. A profile the source character has never logged in with has no layout
-     to copy from and is skipped.
+     consistent inside. A profile with no copy of the source character's settings (it has never
+     logged in with that profile, or the folder has been deleted) has no layout to copy from and
+     is skipped.
 
    The gold line underneath says how many files that touches, and which profiles are skipped.
 3. **Source** — the character whose layout everyone gets. It defaults to whoever played most

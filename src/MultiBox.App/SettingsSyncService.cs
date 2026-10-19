@@ -114,7 +114,7 @@ public sealed class SettingsSyncService
         var how = automatic ? "after the last client closed" : "on request";
         var skipped = plan.SkippedProfiles.Count == 0
             ? string.Empty
-            : $" Skipped {plan.SkippedProfiles.Count} profile(s) the source character has never logged in with.";
+            : $" Skipped {plan.SkippedProfiles.Count} profile(s) with no copy of the source character's settings.";
         Synced?.Invoke((result.Copied.Count == 0
             ? $"Settings sync {how}: nothing to copy."
             : $"Synced layout to {result.Copied.Count} character file(s) in {profiles} profile(s) {how}.") + skipped);

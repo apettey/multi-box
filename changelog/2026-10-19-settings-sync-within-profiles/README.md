@@ -32,9 +32,11 @@ profiles could only receive the selected profile's layout, which would have flat
   - auto-sync seeing a change in another profile;
   - restoring a multi-profile sync;
   - the config round-trip, including an older config.
-- **Live clients:** run with 5 clients open against the real profiles (`Split_Screen` selected; `Default`,
-  `Split_Screen_backup0`, `Split_Screen_1_huffer` and `NewProfile` ticked). Switching modes and ticking profiles
-  updated the summary correctly in both modes (29 files copying, 31 syncing within), and `NewProfile` was reported as
-  skipped.
+- **Live clients:** run with 5 clients open against the real profiles, with `Split_Screen` selected. The summary
+  matched the files on disk at each step:
+  - with `Default` (17 characters) and `Split_Screen_backup0` (12) ticked, it showed 29 files copying and 27 syncing
+    within (the source's own copy is not a target when syncing within);
+  - adding `Split_Screen_1_huffer` (5) took syncing within to 31;
+  - ticking `NewProfile` (no characters) listed it as skipped.
 - **Not exercised:** an actual **SYNC NOW** or auto-sync with real files. That needs every client closed, and the
   clients were in use. The copying itself is covered by the tests against temporary folders.

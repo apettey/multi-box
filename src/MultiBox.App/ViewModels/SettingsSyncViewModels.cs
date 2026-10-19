@@ -89,8 +89,10 @@ public sealed class SettingsSyncViewModel : ObservableObject
     private Brush _clientsBrush = Palette.TextMuted;
     public Brush ClientsBrush { get => _clientsBrush; private set => Set(ref _clientsBrush, value); }
 
+    // From the plan the sync will run, so SYNC NOW is never offered for a sync with nothing to
+    // copy (for instance every ticked profile skipped and every row unticked).
     public bool CanSync => _openClients == 0 && Settings.IsConfigured &&
-                           (Rows.Any(r => r.IsTarget) || OtherProfiles.Any(p => p.IsChecked));
+                           SettingsSyncPlanner.BuildFromDisk(Settings).TargetCount > 0;
 
     /// <summary>How many more files the ticked profiles add, so the reach of a sync is visible.</summary>
     public string AlsoApplySummary
@@ -113,7 +115,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
                   $"each from {NameFor(Settings.SourceCharacterId)}'s own copy there. Each profile keeps its own layout.";
 
             if (plan.SkippedProfiles.Count > 0)
-                text += " Skipped, because the source character has never logged in with them: " +
+                text += " Skipped, because they hold no copy of the source character's settings: " +
                         string.Join(", ", plan.SkippedProfiles.Select(ProfileName)) + ".";
 
             return text + " Unticked characters are left alone in every profile.";
@@ -272,6 +274,9 @@ public sealed class SettingsSyncViewModel : ObservableObject
             foreach (var row in Rows.Where(r => r.CharacterId == id))
                 row.Name = name;
         }
+
+        // The summary names the source character, which may only now have a name.
+        Raise(nameof(AlsoApplySummary));
     }
 
     public void SyncNow()
