@@ -9,6 +9,14 @@ This file is generated: every merge to `main` is released automatically, and the
 adds its version section here from the [`changelog/`](changelog/README.md) entries and
 announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.md).
 
+## [1.1.1] - 2026-10-19
+
+### Pull requests
+
+- deps: Bump the nuget-minor-and-patch group with 2 updates (#20)
+
+**Full diff:** https://github.com/apettey/multi-box/compare/v1.1.0...v1.1.1
+
 ## [1.1.0] - 2026-10-19
 
 ### What's new
