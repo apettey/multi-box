@@ -9,6 +9,22 @@ This file is generated: every merge to `main` is released automatically, and the
 adds its version section here from the [`changelog/`](changelog/README.md) entries and
 announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.md).
 
+## [1.1.0] - 2026-10-19
+
+### What's new
+
+- **Sync each profile within itself.** Settings sync can now keep a different layout per launcher profile. Open SYNC LAYOUT in the header, tick your other profiles under Also apply to, and choose "Sync each one within itself": every character in each profile gets your main character's layout from that same profile. Profiles your main character has never logged in with are skipped and named, and everything is backed up first. (#21)
+
+### Changes
+
+- [Sync each profile within itself](https://github.com/apettey/multi-box/blob/1e02fc318efe1227544aec02bee8a7d6bf3ea6a2/changelog/2026-10-19-settings-sync-within-profiles/README.md): Settings sync can keep a different layout per launcher profile: "Sync each one within itself" syncs every ticked profile from your main character's own copy there
+
+### Pull requests
+
+- Settings sync: sync each launcher profile within itself (#21)
+
+**Full diff:** https://github.com/apettey/multi-box/compare/v1.0.6...v1.1.0
+
 ## [1.0.6] - 2026-10-18
 
 ### Changes
