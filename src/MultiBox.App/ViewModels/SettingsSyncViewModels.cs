@@ -90,9 +90,28 @@ public sealed class SettingsSyncViewModel : ObservableObject
     public Brush ClientsBrush { get => _clientsBrush; private set => Set(ref _clientsBrush, value); }
 
     // From the plan the sync will run, so SYNC NOW is never offered for a sync with nothing to
-    // copy (for instance every ticked profile skipped and every row unticked).
-    public bool CanSync => _openClients == 0 && Settings.IsConfigured &&
-                           SettingsSyncPlanner.BuildFromDisk(Settings).TargetCount > 0;
+    // copy (for instance every ticked profile skipped and every row unticked). The count is
+    // worked out when a choice changes, not here: this getter runs every second from the
+    // client timer, and reading folders on each tick would be wasted work on the UI thread.
+    public bool CanSync => _openClients == 0 && Settings.IsConfigured && _planTargets > 0;
+
+    private int _planTargets;
+
+    /// <summary>Recounts what a sync would copy after any choice that changes it.</summary>
+    private void RecomputePlan()
+    {
+        try
+        {
+            _planTargets = SettingsSyncPlanner.BuildFromDisk(Settings).TargetCount;
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            // A folder that cannot be read offers nothing to sync; SyncNow would refuse anyway.
+            _planTargets = 0;
+        }
+
+        Raise(nameof(CanSync));
+    }
 
     /// <summary>How many more files the ticked profiles add, so the reach of a sync is visible.</summary>
     public string AlsoApplySummary
@@ -104,7 +123,15 @@ public sealed class SettingsSyncViewModel : ObservableObject
                 return "Only the profile above is changed.";
 
             // The same plan the sync runs, so this line can't promise something it won't do.
-            var plan = SettingsSyncPlanner.BuildFromDisk(Settings);
+            SyncPlan plan;
+            try
+            {
+                plan = SettingsSyncPlanner.BuildFromDisk(Settings);
+            }
+            catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+            {
+                return "A ticked profile folder could not be read: " + e.Message;
+            }
             var others = plan.Steps.Skip(1).ToList();
             var files = others.Sum(s => s.Targets.Count);
 
@@ -145,7 +172,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
         Raise(nameof(CopyInto));
         Raise(nameof(WithinEach));
         Raise(nameof(AlsoApplySummary));
-        Raise(nameof(CanSync));
+        RecomputePlan();
     }
 
     private string ProfileName(string path) =>
@@ -171,7 +198,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
     {
         Settings.AlsoApplyToProfilePaths = OtherProfiles.Where(p => p.IsChecked).Select(p => p.Path).ToList();
         Raise(nameof(AlsoApplySummary));
-        Raise(nameof(CanSync));
+        RecomputePlan();
     }
 
     public string LastSyncText => Settings.LastSyncUtc is { } last
@@ -223,7 +250,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
             Rows.Add(row);
         }
 
-        Raise(nameof(CanSync));
+        RecomputePlan();
         _ = ResolveUnknownNamesAsync();
     }
 
@@ -241,7 +268,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
         Settings.ExcludedCharacterIds = Rows.Where(r => !r.Included).Select(r => r.CharacterId).ToList();
         foreach (var r in Rows)
             r.Refresh();
-        Raise(nameof(CanSync));
+        RecomputePlan();
         Raise(nameof(AlsoApplySummary));
     }
 
