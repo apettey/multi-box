@@ -7,9 +7,9 @@ checked against them.
 
 1. **Logs and ESI only.** No reading EVE client memory, no injected input, no automation.
    This is an EULA constraint, not a preference. The only Windows APIs used are read-only
-   window queries plus the focus and thumbnail calls listed in EULA-COMPLIANCE.md. The one
-   EVE-owned file ever written is a `core_char_<id>.dat`, copied whole by settings sync
-   while no client is open.
+   window queries plus the focus and thumbnail calls listed in EULA-COMPLIANCE.md. The only
+   EVE-owned files ever written are `core_char_<id>.dat` and, if the player opts in,
+   `core_user_<id>.dat`, copied whole by settings sync while no client is open.
 2. **Windows is the deployment target**, because that is where the game runs. But the
    parsing and state logic must be testable off-Windows, or development is miserable.
 3. **The same event arrives many times.** With four clients running, one game event lands in
@@ -185,8 +185,11 @@ The portable half lives in `MultiBox.Core/Settings`:
   `%APPDATA%\MultiBox\settings-backups`, then copies the source over each target through a
   temporary file and a rename. The source and target profiles can differ. Every zip from one
   sync shares a batch id, so restoring and pruning treat a multi-profile sync as one unit.
-  Target paths are built from a numeric id, so nothing but a `core_char_<id>.dat` can be
-  addressed. It is one of the two files the EULA test allows to write to disk.
+  Target paths are built from a numeric id, so nothing but a `core_char_<id>.dat` or
+  `core_user_<id>.dat` can be addressed. `ApplyAccounts` does the same for account files, opted
+  into with `SyncAccountSettings`; they get their own zip because the account step runs after
+  the character step, and one zip of both would capture already overwritten character files.
+  It is one of the two files the EULA test allows to write to disk.
 - `SettingsSyncPlanner` turns the settings into copy steps. The launcher assigns a profile per
   account, so a fleet can read from several folders, and the profiles ticked under "also apply
   to" are handled by `SettingsSyncMode`: `CopyInto` copies the selected profile's source file
@@ -283,6 +286,7 @@ Recorded honestly so they are not mistaken for finished work.
 - **No fleet-wide roll-up** (total fleet DPS, who is being primaried) — the per-character
   data supports it, nothing renders it yet.
 - **`Sz`/`PanelSize` is only partially used**, since the layout question above is open.
-- **Settings sync covers character files only.** `core_user_<id>.dat` (account-wide graphics,
-  audio and similar) is not synced: no local file maps an account id to its characters, and
-  those files carry hardware-specific values.
+- **Settings sync leaves per-profile settings alone.** `core_public__.yaml` (resolution, monitor,
+  window mode, graphics quality, audio) is not synced, since those values are what make profiles
+  differ. Account files can only be picked by id and write time: no local file maps an account id
+  to its characters.

@@ -170,12 +170,13 @@ a unit test enforces it.
 | EVE chat logs | `...\EVE\logs\Chatlogs\*.txt` | **read-only** |
 | eve-o-preview config | `%LOCALAPPDATA%\EVE-O Preview\EVE-O Preview.json` | **read-only** |
 | EVE character settings | `%LOCALAPPDATA%\CCP\EVE\*tranquility*\settings_*\core_char_<id>.dat` | **whole-file copy**, settings sync only, every client closed |
-| EVE account settings, prefs | `core_user_*.dat`, `core_char__.dat`, `prefs.ini` and the rest of that folder | **never opened** |
+| EVE account settings | `...\settings_*\core_user_<id>.dat` | **whole-file copy**, settings sync only, only if the player ticks it, every client closed |
+| EVE display settings, defaults, prefs | `core_public__.yaml`, `core_char__.dat`, `core_user__.dat`, `prefs.ini` and the rest of that folder | **never opened** |
 | MultiBox config | `%APPDATA%\MultiBox\multibox.json` | read/write |
 | Settings backups | `%APPDATA%\MultiBox\settings-backups\*.zip` | read/write |
 
-Apart from MultiBox's own files, the only thing the application writes is a character settings
-file during a sync. Every other EVE-owned file — logs, caches, the client itself — is opened
+Apart from MultiBox's own files, the only things the application writes are character settings
+files and, if the player opts in, account settings files during a sync. Every other EVE-owned file — logs, caches, the client itself — is opened
 `FileMode.Open, FileAccess.Read` or not at all. Nothing is uploaded anywhere: log contents
 never leave the machine, and the only outbound traffic is the ESI character lookups.
 
@@ -200,14 +201,18 @@ What makes it safe:
   never parses, patches or generates their contents, so it cannot set a value the game's own
   UI could not have set on another character. Editing settings files is the grey area here,
   and it is not done.
-- **Only character files.** Target paths are built as `core_char_<numeric id>.dat` and nothing
-  else in the folder can be addressed. `SettingsSyncTests` runs a sync in a folder holding
-  account settings, the shared default and `prefs.ini`, and asserts they are untouched.
-- **Only existing files.** A character that has never logged in gets no file.
+- **Only character files, and account files on request.** Target paths are built as
+  `core_char_<numeric id>.dat` or `core_user_<numeric id>.dat` and nothing else in the folder can
+  be addressed. Account files are off by default and need a source account the player picked; they
+  hold keyboard shortcuts, which is the point, and copying them is the same file copy, so it sets
+  nothing the game's own shortcut menu could not. A shortcut still does one thing in one client:
+  this broadcasts nothing. `SettingsSyncTests` runs syncs in a folder holding the shared defaults,
+  `core_public__.yaml` and `prefs.ini`, and asserts they are untouched.
+- **Only existing files.** A character or account that has never logged in gets no file.
 - **Never under a running client.** A sync, manual or automatic, is refused while any window
   titled `EVE` or `EVE - <name>` exists. The client is not touched at all: it reads the files
   the next time it starts, exactly as if the player had copied them.
-- **Always reversible.** Every character file in the profile is zipped to
+- **Always reversible.** Every file of the kind being copied in the profile is zipped to
   `%APPDATA%\MultiBox\settings-backups` first, and the window can restore it.
 - **No new capability.** No native call was added. Open clients are counted with the same
   `EnumWindows` and `GetWindowText` calls already listed above.
@@ -255,8 +260,8 @@ silently shipping.
 inspection — are both absent, and one of them was a feature deliberately abandoned to stay
 on the right side of the line. The native surface is six read-only window queries plus the
 thumbnail, focus and hotkey calls above — strictly fewer capabilities than the eve-o-preview
-you already run. Settings sync writes character settings files only as whole-file copies,
-with every client closed.
+you already run. Settings sync writes character and, if ticked, account settings files only as
+whole-file copies, with every client closed.
 
 The honest caveat, unrelated to the EULA: the WPF window has not yet been rendered on
 Windows, so expect UI rough edges on first run.

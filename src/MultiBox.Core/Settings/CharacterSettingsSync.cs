@@ -7,6 +7,9 @@ namespace MultiBox.Core.Settings;
 public sealed record SyncResult(string? BackupPath, IReadOnlyList<long> Copied)
 {
     public static readonly SyncResult Nothing = new(null, Array.Empty<long>());
+
+    /// <summary>Accounts overwritten by the same sync, when account settings were part of it.</summary>
+    public IReadOnlyList<long> AccountsCopied { get; init; } = Array.Empty<long>();
 }
 
 /// <summary>
@@ -23,12 +26,13 @@ public sealed record SettingsBackup(string Path, string ProfilePath, DateTime Cr
 /// This is the one place MultiBox writes into a folder EVE owns, so the boundary is drawn
 /// tightly and enforced here rather than by the caller:
 /// <list type="bullet">
-/// <item>Only <c>core_char_&lt;id&gt;.dat</c> files are ever written. Target paths are built from a
-/// numeric id, never taken from input, so nothing else in the folder can be addressed.</item>
+/// <item>Only <c>core_char_&lt;id&gt;.dat</c> and, when the player opts in, <c>core_user_&lt;id&gt;.dat</c>
+/// files are ever written. Target paths are built from a numeric id, never taken from input, so
+/// nothing else in the folder can be addressed.</item>
 /// <item>Files are copied whole, byte for byte. Their contents are never parsed or edited.</item>
-/// <item>Only files that already exist are overwritten: a character that has never logged in
-/// gets no file conjured for it.</item>
-/// <item>Every character file in the profile is zipped to MultiBox's own folder first.</item>
+/// <item>Only files that already exist are overwritten: a character or account that has never
+/// logged in gets no file conjured for it.</item>
+/// <item>Every file of the kind being copied is zipped to MultiBox's own folder first.</item>
 /// </list>
 /// The caller must only run this while no EVE client is open. A running client holds its
 /// settings in memory and writes them back on logout, which would quietly undo the copy.
@@ -85,29 +89,78 @@ public sealed class CharacterSettingsSync
         var copied = new List<long>();
         foreach (var id in targets)
         {
-            var target = CharacterFilePath(targetProfile, id);
-            var temp = target + TempSuffix;
-            try
-            {
-                // Copy beside the target and then swap, so an interrupted copy leaves the old
-                // file in place rather than half of the new one.
-                File.Copy(source, temp, overwrite: true);
-                File.Move(temp, target, overwrite: true);
-                copied.Add(id);
-            }
-            finally
-            {
-                if (File.Exists(temp))
-                    File.Delete(temp);
-            }
+            CopyOver(source, CharacterFilePath(targetProfile, id));
+            copied.Add(id);
         }
 
         Prune();
         return new SyncResult(backup, copied);
     }
 
+    /// <summary>
+    /// Copies the source account's file from <paramref name="sourceProfile"/> over each target
+    /// account's file in <paramref name="targetProfile"/>, under the same rules as characters.
+    /// </summary>
+    public SyncResult ApplyAccounts(string sourceProfile, long sourceId, string targetProfile,
+        IEnumerable<long> targetIds, Guid? batchId = null)
+    {
+        var source = AccountFilePath(sourceProfile, sourceId);
+        if (!File.Exists(source))
+            throw new FileNotFoundException("The source account has no settings file in this profile.", source);
+
+        var sameProfile = Path.GetFullPath(sourceProfile).Equals(Path.GetFullPath(targetProfile), StringComparison.OrdinalIgnoreCase);
+        var targets = targetIds
+            .Where(id => !sameProfile || id != sourceId)
+            .Distinct()
+            .Where(id => File.Exists(AccountFilePath(targetProfile, id)))
+            .ToList();
+
+        if (targets.Count == 0)
+            return SyncResult.Nothing;
+
+        var backup = BackupAccounts(targetProfile, batchId);
+
+        var copied = new List<long>();
+        foreach (var id in targets)
+        {
+            CopyOver(source, AccountFilePath(targetProfile, id));
+            copied.Add(id);
+        }
+
+        Prune();
+        return new SyncResult(backup, Array.Empty<long>()) { AccountsCopied = copied };
+    }
+
+    private static void CopyOver(string source, string target)
+    {
+        var temp = target + TempSuffix;
+        try
+        {
+            // Copy beside the target and then swap, so an interrupted copy leaves the old
+            // file in place rather than half of the new one.
+            File.Copy(source, temp, overwrite: true);
+            File.Move(temp, target, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temp))
+                File.Delete(temp);
+        }
+    }
+
     /// <summary>Zips every character file in the profile into the backup folder.</summary>
-    public string Backup(string profilePath, Guid? batchId = null)
+    public string Backup(string profilePath, Guid? batchId = null) =>
+        WriteZip(profilePath, EveSettingsLocator.CharacterFiles(profilePath).Select(f => f.Path).ToList(), batchId);
+
+    /// <summary>
+    /// Zips every account file in the profile into the backup folder. A separate zip from the
+    /// character files: a sync's account step runs after its character step, so one zip of both
+    /// would capture character files that had already been overwritten.
+    /// </summary>
+    public string BackupAccounts(string profilePath, Guid? batchId = null) =>
+        WriteZip(profilePath, EveSettingsLocator.AccountFiles(profilePath).Select(f => f.Path).ToList(), batchId);
+
+    private string WriteZip(string profilePath, IReadOnlyList<string> files, Guid? batchId)
     {
         Directory.CreateDirectory(_backupRoot);
 
@@ -117,11 +170,10 @@ public sealed class CharacterSettingsSync
         var tail = Guid.NewGuid().ToString("N")[..6];
         var path = Path.Combine(_backupRoot, $"{created:yyyyMMdd-HHmmss-fff}_{Sanitise(profileName)}_{tail}.zip");
 
-        var files = EveSettingsLocator.CharacterFiles(profilePath);
         using (var zip = ZipFile.Open(path, ZipArchiveMode.Create))
         {
             foreach (var file in files)
-                zip.CreateEntryFromFile(file.Path, Path.GetFileName(file.Path), CompressionLevel.Optimal);
+                zip.CreateEntryFromFile(file, Path.GetFileName(file), CompressionLevel.Optimal);
 
             var manifest = zip.CreateEntry(ManifestEntry);
             using var stream = manifest.Open();
@@ -149,9 +201,9 @@ public sealed class CharacterSettingsSync
     }
 
     /// <summary>
-    /// Puts a backup's character files back into the profile it was taken from. Entries that
-    /// are not <c>core_char_&lt;id&gt;.dat</c> are ignored, so a backup can only ever restore the
-    /// kind of file a sync could have changed.
+    /// Puts a backup's files back into the profile it was taken from. Entries that are not
+    /// <c>core_char_&lt;id&gt;.dat</c> or <c>core_user_&lt;id&gt;.dat</c> are ignored, so a backup can only
+    /// ever restore the kind of file a sync could have changed.
     /// </summary>
     public int Restore(SettingsBackup backup)
     {
@@ -162,11 +214,17 @@ public sealed class CharacterSettingsSync
         using var zip = ZipFile.OpenRead(backup.Path);
         foreach (var entry in zip.Entries)
         {
-            var id = EveSettingsLocator.TryParseCharacterId(entry.Name);
-            if (id is null || entry.FullName != entry.Name)
+            if (entry.FullName != entry.Name)
                 continue;
 
-            var target = CharacterFilePath(backup.ProfilePath, id.Value);
+            string target;
+            if (EveSettingsLocator.TryParseCharacterId(entry.Name) is { } characterId)
+                target = CharacterFilePath(backup.ProfilePath, characterId);
+            else if (EveSettingsLocator.TryParseAccountId(entry.Name) is { } accountId)
+                target = AccountFilePath(backup.ProfilePath, accountId);
+            else
+                continue;
+
             var temp = target + TempSuffix;
             try
             {
@@ -201,12 +259,20 @@ public sealed class CharacterSettingsSync
             : new[] { newest };
     }
 
-    /// <summary>The only shape of path this class ever writes to.</summary>
+    /// <summary>One of the two shapes of path this class ever writes to.</summary>
     public static string CharacterFilePath(string profilePath, long characterId)
     {
         if (characterId <= 0)
             throw new ArgumentOutOfRangeException(nameof(characterId), "Character ids are positive.");
         return Path.Combine(profilePath, $"core_char_{characterId}.dat");
+    }
+
+    /// <summary>The other shape of path this class ever writes to.</summary>
+    public static string AccountFilePath(string profilePath, long accountId)
+    {
+        if (accountId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(accountId), "Account ids are positive.");
+        return Path.Combine(profilePath, $"core_user_{accountId}.dat");
     }
 
     private void Prune()

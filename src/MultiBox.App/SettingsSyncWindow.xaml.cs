@@ -48,7 +48,7 @@ public partial class SettingsSyncWindow : Window
     private void Restore_Click(object sender, MouseButtonEventArgs e)
     {
         var answer = MessageBox.Show(this,
-            "Put back every character file in this profile as it was before the most recent sync?",
+            "Put back every settings file the most recent sync changed, as it was before that sync?",
             "Restore backup", MessageBoxButton.OKCancel, MessageBoxImage.Question);
         if (answer == MessageBoxResult.OK)
             _viewModel.RestoreLatest();

@@ -135,6 +135,64 @@
                 </StackPanel>
             </Grid>
 
+            <!-- Account files carry keyboard shortcuts. No local file links an account to its
+                 characters, so the source is picked by id and write time, and never defaulted. -->
+            <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="ACCOUNT SETTINGS" VerticalAlignment="Top" Width="76" Margin="0,2,0,0"
+                           TextWrapping="Wrap" FontFamily="{StaticResource Mono}" FontSize="9"
+                           Foreground="{x:Static local:Palette.TextMuted}"/>
+                <StackPanel Grid.Column="1">
+                    <CheckBox IsChecked="{Binding SyncAccountSettings}">
+                        <TextBlock Text="Also copy account settings: keyboard shortcuts, camera, chat channels and saved overview profiles"
+                                   TextWrapping="Wrap" FontFamily="{StaticResource Mono}" FontSize="10"
+                                   Foreground="{x:Static local:Palette.TextSecondary}"/>
+                    </CheckBox>
+                    <StackPanel Margin="0,6,0,0">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SyncAccountSettings}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <ComboBox ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedAccount}"
+                                  FontFamily="{StaticResource Mono}" FontSize="11"
+                                  ToolTip="The account whose settings the others get. The one you changed shortcuts on was written most recently.">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Label}" FontFamily="{StaticResource Mono}" FontSize="11"
+                                               Foreground="{x:Static local:Palette.Page}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <ItemsControl Margin="0,5,0,0" ItemsSource="{Binding AccountTargets}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Margin="0,0,12,3" IsChecked="{Binding Included}">
+                                        <TextBlock Text="{Binding AccountId}" FontFamily="{StaticResource Mono}" FontSize="10"
+                                                   Foreground="{x:Static local:Palette.TextSecondary}"/>
+                                    </CheckBox>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                    <TextBlock Margin="0,3,0,0" TextWrapping="Wrap" FontFamily="{StaticResource Mono}" FontSize="9"
+                               Foreground="{x:Static local:Palette.Gold}" Text="{Binding AccountSummary}"/>
+                </StackPanel>
+            </Grid>
+
             <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontFamily="{StaticResource Mono}" FontSize="10"
                        Text="{Binding ClientsText}" Foreground="{Binding ClientsBrush}"/>
             <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" FontFamily="{StaticResource Mono}" FontSize="10"

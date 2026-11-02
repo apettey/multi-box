@@ -167,11 +167,12 @@ public class EulaComplianceTests
             // MultiBox's own %APPDATA%\MultiBox\multibox.json.
             ["MultiBoxConfig.cs"] = "writes the application's own config",
 
-            // Settings sync. Writes only core_char_<id>.dat inside a settings_<Profile> folder,
-            // as whole-file copies taken while no client is open, after zipping the originals
-            // to %APPDATA%\MultiBox\settings-backups. SettingsSyncTests proves it leaves every
+            // Settings sync. Writes only core_char_<id>.dat and, when the player opts in,
+            // core_user_<id>.dat inside a settings_<Profile> folder, as whole-file copies taken
+            // while no client is open, after zipping the originals to
+            // %APPDATA%\MultiBox\settings-backups. SettingsSyncTests proves it leaves every
             // other file in the folder byte-for-byte alone. See docs/EULA-COMPLIANCE.md.
-            ["CharacterSettingsSync.cs"] = "copies one character's EVE layout over others",
+            ["CharacterSettingsSync.cs"] = "copies one character's or account's EVE settings over others",
         };
 
         var writes = new Regex(

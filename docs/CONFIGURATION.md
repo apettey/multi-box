@@ -163,8 +163,11 @@ Managed from `⧉ SYNC LAYOUT`; see the user guide.
 | `SettingsSync.AlsoApplyToProfilePaths` | `[]` | other `settings_<Profile>` folders that a sync also covers, as `Mode` says |
 | `SettingsSync.Mode` | `"CopyInto"` | `"CopyInto"`: those profiles get the selected profile's layout, over every character file there (the source character's own copy included). `"WithinEach"`: each is synced within itself from the source character's own copy there, so every profile keeps its own layout; a profile with no such copy (the source never logged in with it, or the folder is gone) is skipped |
 | `SettingsSync.ExcludedCharacterIds` | `[]` | characters left alone, in every profile. Everyone else is a target, so new alts are included |
+| `SettingsSync.SyncAccountSettings` | `false` | also copy `core_user_<id>.dat`, which holds keyboard shortcuts, following the same `Mode` and profiles |
+| `SettingsSync.SourceAccountId` | `0` | account whose file is copied; `0` copies no account settings. Never chosen automatically |
+| `SettingsSync.ExcludedAccountIds` | `[]` | accounts left alone, in every profile |
 | `SettingsSync.AutoSync` | `false` | sync by itself once every EVE client has been closed for ten seconds |
-| `SettingsSync.KeepBackups` | `10` | syncs whose backups are kept in `%APPDATA%\MultiBox\settings-backups` (one zip per profile touched) |
+| `SettingsSync.KeepBackups` | `10` | syncs whose backups are kept in `%APPDATA%\MultiBox\settings-backups` (one zip per profile touched, and a second for its account files if they were copied) |
 | `SettingsSync.LastSyncUtc` | `null` | when the last sync ran. Auto-sync only runs again once a settings file has changed since |
 
 ---

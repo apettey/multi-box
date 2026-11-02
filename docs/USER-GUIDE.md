@@ -261,13 +261,31 @@ What it copies and what it does not:
 
 - **Copied:** `core_char_<id>.dat` — per character: window positions and sizes, chat windows,
   overview and other per-character UI settings.
-- **Not copied:** `core_user_<id>.dat` — per account: graphics, audio and other account-wide
-  settings. These also carry hardware-specific values, so they are left alone for now.
+- **Copied if you tick Account settings:** `core_user_<id>.dat` — per account: keyboard
+  shortcuts, camera settings, chat channel lists, saved overview profiles and other UI settings.
+  See below.
+- **Never copied:** `core_public__.yaml` — per profile: resolution, monitor, window mode, graphics
+  quality and audio. These are what makes one profile your split-screen setup and another your
+  second monitor, so each profile keeps its own. Nor `prefs.ini` or the `core_*__` default files.
 - A character only gets a layout in a profile if it has logged in at least once with that
   profile, because that is when EVE creates its file there.
 - MultiBox cannot read which profile the launcher assigns to each account; the write times in
   the picker are the hint. Ticking a profile nobody launches with does no harm, it just
   changes files no client reads.
+
+**Account settings (keyboard shortcuts).** EVE keeps shortcuts per account, not per character,
+so characters on one account in one profile already share them. To give your other accounts the
+same shortcuts, tick **Also copy account settings** and choose the account to copy from. EVE's
+files name accounts by a number that nothing on your PC links to a character, so use the write
+time: log in on the account with the shortcuts you want, change something, log out, and it will
+be at the top of the list. Untick any account that should keep its own. Nothing is chosen for
+you, and nothing is copied until you pick.
+
+The whole file is copied, because MultiBox never edits EVE's files. That means the other accounts
+also get the source account's **chat channel list, camera settings and saved overview profiles**,
+not only its shortcuts. The account copy follows the same **Also apply to** choices as the
+layout, is backed up the same way, runs with automatic sync when ticked, and is undone by
+**RESTORE LAST BACKUP**.
 
 ---
 
