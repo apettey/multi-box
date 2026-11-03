@@ -134,6 +134,11 @@ public sealed class SettingsSyncViewModel : ObservableObject
                 return "A ticked profile folder could not be read: " + e.Message;
             }
 
+            if (plan.Steps.Count == 0)
+                return "Nothing is copied until this profile has a source character.";
+            if (plan.AccountSourceMissing)
+                return $"Account {Settings.SourceAccountId} has no settings file in this profile. Choose another account: nothing is copied until you do.";
+
             var text = $"Overwrites {plan.AccountTargetCount} account file(s) in " +
                        $"{plan.AccountSteps.Count(s => s.Targets.Count > 0)} profile(s) with account {Settings.SourceAccountId}'s.";
             if (plan.SkippedAccountProfiles.Count > 0)
@@ -151,9 +156,8 @@ public sealed class SettingsSyncViewModel : ObservableObject
                 Accounts.Add(new AccountOptionViewModel(file));
 
         // Never defaulted: there is no telling which account holds the shortcuts the player wants.
+        // A source whose file has gone stays chosen, so the summary can say so and it isn't lost.
         _selectedAccount = Accounts.FirstOrDefault(a => a.AccountId == Settings.SourceAccountId);
-        if (_selectedAccount is null)
-            Settings.SourceAccountId = 0;
         Raise(nameof(SelectedAccount));
         LoadAccountTargets();
         Raise(nameof(AccountSummary));
@@ -162,9 +166,18 @@ public sealed class SettingsSyncViewModel : ObservableObject
     private void LoadAccountTargets()
     {
         AccountTargets.Clear();
-        foreach (var option in Accounts.Where(a => a != _selectedAccount))
+
+        // Every account the sync can reach, including those only in a ticked profile: each one
+        // that can be overwritten has to have a tick that stops it.
+        var reachable = Accounts.Select(a => a.AccountId)
+            .Concat(Settings.OtherProfiles().SelectMany(p => EveSettingsLocator.AccountFiles(p).Select(f => f.AccountId)))
+            .Where(id => id != Settings.SourceAccountId)
+            .Distinct()
+            .Order();
+
+        foreach (var id in reachable)
         {
-            var row = new AccountTargetViewModel(option.AccountId, !Settings.ExcludedAccountIds.Contains(option.AccountId));
+            var row = new AccountTargetViewModel(id, !Settings.ExcludedAccountIds.Contains(id));
             row.Changed += OnAccountTargetChanged;
             AccountTargets.Add(row);
         }
@@ -172,7 +185,11 @@ public sealed class SettingsSyncViewModel : ObservableObject
 
     private void OnAccountTargetChanged()
     {
-        Settings.ExcludedAccountIds = AccountTargets.Where(a => !a.Included).Select(a => a.AccountId).ToList();
+        // Exclusions for accounts not listed right now (their profile is unticked) are kept.
+        var listed = AccountTargets.Select(a => a.AccountId).ToHashSet();
+        Settings.ExcludedAccountIds = Settings.ExcludedAccountIds.Where(id => !listed.Contains(id))
+            .Concat(AccountTargets.Where(a => !a.Included).Select(a => a.AccountId))
+            .ToList();
         Raise(nameof(AccountSummary));
         RecomputePlan();
     }
@@ -213,6 +230,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
         }
 
         Raise(nameof(CanSync));
+        Raise(nameof(AccountSummary));
     }
 
     /// <summary>How many more files the ticked profiles add, so the reach of a sync is visible.</summary>
@@ -300,6 +318,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
     private void OnAlsoApplyChanged()
     {
         Settings.AlsoApplyToProfilePaths = OtherProfiles.Where(p => p.IsChecked).Select(p => p.Path).ToList();
+        LoadAccountTargets();
         Raise(nameof(AlsoApplySummary));
         Raise(nameof(AccountSummary));
         RecomputePlan();

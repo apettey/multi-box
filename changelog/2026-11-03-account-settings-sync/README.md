@@ -25,6 +25,6 @@ whole settings file over the others.
   files shows those are in `core_public__.yaml`, per profile, which is still never touched.
 - Shortcuts being in `core_user` comes from the `customCmds` key in real files, not from any CCP
   documentation.
-- Tests: 10 added to `SettingsSyncTests`.
+- Tests: 14 added to `SettingsSyncTests`.
 - Not exercised: a sync of real files followed by a login in the client, so shortcuts arriving in
   game is unconfirmed by this entry.

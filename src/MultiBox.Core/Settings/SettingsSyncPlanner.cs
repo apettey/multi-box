@@ -38,6 +38,9 @@ public sealed record SyncPlan(IReadOnlyList<SyncStep> Steps, IReadOnlyList<strin
 
     public long SourceAccountId { get; init; }
 
+    /// <summary>Account settings were asked for, but the source account has no file in the selected profile.</summary>
+    public bool AccountSourceMissing { get; init; }
+
     /// <summary>Account files across every step.</summary>
     public int AccountTargetCount => AccountSteps.Sum(s => s.Targets.Count);
 
@@ -107,7 +110,7 @@ public static class SettingsSyncPlanner
 
         var inMain = accountIdsIn(main);
         if (!inMain.Contains(source))
-            return plan;
+            return plan with { AccountSourceMissing = true };
 
         var steps = new List<SyncStep> { new(main, main, settings.AccountTargetsAmong(inMain)) };
         var skipped = new List<string>();

@@ -252,8 +252,8 @@ one goes MultiBox copies the layout across. The next time you launch, from the E
 usual, every character opens with it. MultiBox does not launch EVE, and does not need to: the
 files are already in place. The dashboard's status line reports each automatic sync.
 
-**Backups.** Before every sync, all the character files in each profile it touches are zipped
-to `%APPDATA%\MultiBox\settings-backups` (the newest ten syncs are kept). **RESTORE LAST
+**Backups.** Before every sync, all the character files in each profile it touches, and all the
+account files when those are being copied, are zipped to `%APPDATA%\MultiBox\settings-backups` (the newest ten syncs are kept). **RESTORE LAST
 BACKUP** puts back every profile the most recent sync changed, again only while every client
 is closed.
 
@@ -278,8 +278,9 @@ so characters on one account in one profile already share them. To give your oth
 same shortcuts, tick **Also copy account settings** and choose the account to copy from. EVE's
 files name accounts by a number that nothing on your PC links to a character, so use the write
 time: log in on the account with the shortcuts you want, change something, log out, and it will
-be at the top of the list. Untick any account that should keep its own. Nothing is chosen for
-you, and nothing is copied until you pick.
+be at the top of the list. Every other account in the profiles the sync covers gets a tick box,
+so untick any that should keep its own. Nothing is chosen for you, and nothing is copied until
+you pick.
 
 The whole file is copied, because MultiBox never edits EVE's files. That means the other accounts
 also get the source account's **chat channel list, camera settings and saved overview profiles**,

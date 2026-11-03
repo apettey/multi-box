@@ -177,8 +177,9 @@ the game.
 The portable half lives in `MultiBox.Core/Settings`:
 
 - `EveSettingsLocator` lists `settings_<Profile>` folders under
-  `%LOCALAPPDATA%\CCP\EVE\*tranquility*` and the `core_char_<id>.dat` files in one. The id
-  in the filename is the same ESI character id that names the log files, so a file is shown
+  `%LOCALAPPDATA%\CCP\EVE\*tranquility*` and the `core_char_<id>.dat` and
+  `core_user_<id>.dat` files in one. The id
+  in a `core_char` filename is the same ESI character id that names the log files, so a file is shown
   by pilot name without a lookup; ids no log has mentioned are named by
   `POST /universe/names/`.
 - `CharacterSettingsSync` zips every character file in the target profile to

@@ -83,7 +83,7 @@ only works on made-up data cannot pass.
 Settings files are opaque binary that MultiBox never parses, so the settings sync tests use
 stand-in bytes in a temporary folder rather than a sample from `samples/`.
 
-195 tests total, ~510 ms. The table lists the main suites, not every file.
+199 tests total, ~510 ms. The table lists the main suites, not every file.
 
 ### The coverage test
 

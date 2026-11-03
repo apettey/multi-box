@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace MultiBox.Core.Settings;
 
-/// <summary>What one sync did: where the safety copy went and which characters were overwritten.</summary>
+/// <summary>What one sync did: where the safety copy went and which characters and accounts were overwritten.</summary>
 public sealed record SyncResult(string? BackupPath, IReadOnlyList<long> Copied)
 {
     public static readonly SyncResult Nothing = new(null, Array.Empty<long>());
@@ -13,15 +13,15 @@ public sealed record SyncResult(string? BackupPath, IReadOnlyList<long> Copied)
 }
 
 /// <summary>
-/// One zip of a profile's character files, taken before a sync overwrote them. A sync that
-/// spans several profiles takes one zip per profile, all sharing a <see cref="BatchId"/>, so
-/// they can be restored together.
+/// One zip of a profile's character files or of its account files, taken before a sync
+/// overwrote them. A sync takes one zip per profile for each kind it copies, all sharing a
+/// <see cref="BatchId"/>, so they can be restored together.
 /// </summary>
 public sealed record SettingsBackup(string Path, string ProfilePath, DateTime CreatedUtc, int FileCount, Guid? BatchId = null);
 
 /// <summary>
-/// Copies one character's settings file over others in the same profile, so every client opens
-/// with the same window layout.
+/// Copies one character's settings file over others, so every client opens with the same window
+/// layout, and when asked one account's settings file over others, for the same keyboard shortcuts.
 ///
 /// This is the one place MultiBox writes into a folder EVE owns, so the boundary is drawn
 /// tightly and enforced here rather than by the caller:

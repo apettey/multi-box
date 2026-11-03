@@ -119,6 +119,9 @@ public sealed class SettingsSyncService
         if (plan.SkippedAccountProfiles.Count > 0)
             skipped += $" Skipped account settings in {plan.SkippedAccountProfiles.Count} profile(s) with no copy of the source account's file.";
 
+        if (plan.AccountSourceMissing)
+            skipped += $" Account settings were not copied: account {Settings.SourceAccountId} has no file in the selected profile.";
+
         var parts = new List<string>();
         if (result.Copied.Count > 0)
             parts.Add($"layout to {result.Copied.Count} character file(s) in {profiles} profile(s)");
