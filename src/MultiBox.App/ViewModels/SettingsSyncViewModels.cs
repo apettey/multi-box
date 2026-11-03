@@ -69,10 +69,142 @@ public sealed class SettingsSyncViewModel : ObservableObject
             Settings.ProfilePath = value.Path;
             Settings.SourceCharacterId = 0;
             Settings.ExcludedCharacterIds.Clear();
+            Settings.SourceAccountId = 0;
+            Settings.ExcludedAccountIds.Clear();
             Settings.AlsoApplyToProfilePaths.RemoveAll(p => p.Equals(value.Path, StringComparison.OrdinalIgnoreCase));
             LoadOtherProfiles();
             LoadRows();
         }
+    }
+
+    /// <summary>Also copy account settings, which is where keyboard shortcuts live.</summary>
+    public bool SyncAccountSettings
+    {
+        get => Settings.SyncAccountSettings;
+        set
+        {
+            Settings.SyncAccountSettings = value;
+            Raise();
+            Raise(nameof(AccountSummary));
+            RecomputePlan();
+        }
+    }
+
+    /// <summary>Every account file in the selected profile.</summary>
+    public ObservableCollection<AccountOptionViewModel> Accounts { get; } = new();
+
+    /// <summary>The accounts other than the source, each with a tick to keep it in the copy.</summary>
+    public ObservableCollection<AccountTargetViewModel> AccountTargets { get; } = new();
+
+    private AccountOptionViewModel? _selectedAccount;
+    public AccountOptionViewModel? SelectedAccount
+    {
+        get => _selectedAccount;
+        set
+        {
+            // Null is the ComboBox reacting to the list being rebuilt, not a choice.
+            if (!Set(ref _selectedAccount, value) || value is null)
+                return;
+
+            Settings.SourceAccountId = value.AccountId;
+            Settings.ExcludedAccountIds.Remove(value.AccountId);
+            LoadAccountTargets();
+            Raise(nameof(AccountSummary));
+            RecomputePlan();
+        }
+    }
+
+    /// <summary>From the same plan the sync runs, like <see cref="AlsoApplySummary"/>.</summary>
+    public string AccountSummary
+    {
+        get
+        {
+            if (!Settings.SyncAccountSettings)
+                return "Off. Account settings are left alone.";
+            if (!Settings.CopiesAccountSettings)
+                return "Choose the account to copy from. Nothing is copied until you do.";
+
+            SyncPlan plan;
+            try
+            {
+                plan = SettingsSyncPlanner.BuildFromDisk(Settings);
+            }
+            catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+            {
+                return "A ticked profile folder could not be read: " + e.Message;
+            }
+
+            if (plan.Steps.Count == 0)
+                return "Nothing is copied until this profile has a source character.";
+            if (plan.AccountSourceMissing)
+                return $"Account {Settings.SourceAccountId} has no settings file in this profile. Choose another account: nothing is copied until you do.";
+
+            var text = $"Overwrites {plan.AccountTargetCount} account file(s) in " +
+                       $"{plan.AccountSteps.Count(s => s.Targets.Count > 0)} profile(s) with account {Settings.SourceAccountId}'s.";
+            if (plan.SkippedAccountProfiles.Count > 0)
+                text += " Skipped, because they hold no copy of that account's file: " +
+                        string.Join(", ", plan.SkippedAccountProfiles.Select(ProfileName)) + ".";
+            return text;
+        }
+    }
+
+    private void LoadAccounts()
+    {
+        Accounts.Clear();
+        if (_selectedProfile is not null)
+            foreach (var file in EveSettingsLocator.AccountFiles(_selectedProfile.Path).OrderByDescending(f => f.LastWriteUtc))
+                Accounts.Add(new AccountOptionViewModel(file));
+
+        // Never defaulted: there is no telling which account holds the shortcuts the player wants.
+        // A source whose file has gone stays chosen, so the summary can say so and it isn't lost.
+        _selectedAccount = Accounts.FirstOrDefault(a => a.AccountId == Settings.SourceAccountId);
+        Raise(nameof(SelectedAccount));
+        LoadAccountTargets();
+        Raise(nameof(AccountSummary));
+    }
+
+    private void LoadAccountTargets()
+    {
+        AccountTargets.Clear();
+
+        // Every account the sync can reach, including those only in a ticked profile: each one
+        // that can be overwritten has to have a tick that stops it.
+        var reachable = Accounts.Select(a => a.AccountId)
+            .Concat(Settings.OtherProfiles().SelectMany(AccountIdsIn))
+            .Where(id => id != Settings.SourceAccountId)
+            .Distinct()
+            .Order();
+
+        foreach (var id in reachable)
+        {
+            var row = new AccountTargetViewModel(id, !Settings.ExcludedAccountIds.Contains(id));
+            row.Changed += OnAccountTargetChanged;
+            AccountTargets.Add(row);
+        }
+    }
+
+    /// <summary>A ticked folder that cannot be read lists nothing; the summaries say why.</summary>
+    private static IEnumerable<long> AccountIdsIn(string profile)
+    {
+        try
+        {
+            return EveSettingsLocator.AccountFiles(profile).Select(f => f.AccountId).ToList();
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            return Array.Empty<long>();
+        }
+    }
+
+    private void OnAccountTargetChanged()
+    {
+        // Exclusions for accounts not listed right now (their profile is unticked) are kept.
+        var listed = AccountTargets.Select(a => a.AccountId).ToHashSet();
+        Settings.ExcludedAccountIds = Settings.ExcludedAccountIds.Where(id => !listed.Contains(id))
+            .Concat(AccountTargets.Where(a => !a.Included).Select(a => a.AccountId))
+            .ToList();
+        Raise(nameof(AccountSummary));
+        RecomputePlan();
     }
 
     public bool AutoSync
@@ -111,6 +243,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
         }
 
         Raise(nameof(CanSync));
+        Raise(nameof(AccountSummary));
     }
 
     /// <summary>How many more files the ticked profiles add, so the reach of a sync is visible.</summary>
@@ -172,6 +305,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
         Raise(nameof(CopyInto));
         Raise(nameof(WithinEach));
         Raise(nameof(AlsoApplySummary));
+        Raise(nameof(AccountSummary));
         RecomputePlan();
     }
 
@@ -197,7 +331,9 @@ public sealed class SettingsSyncViewModel : ObservableObject
     private void OnAlsoApplyChanged()
     {
         Settings.AlsoApplyToProfilePaths = OtherProfiles.Where(p => p.IsChecked).Select(p => p.Path).ToList();
+        LoadAccountTargets();
         Raise(nameof(AlsoApplySummary));
+        Raise(nameof(AccountSummary));
         RecomputePlan();
     }
 
@@ -230,6 +366,8 @@ public sealed class SettingsSyncViewModel : ObservableObject
 
     public void LoadRows()
     {
+        LoadAccounts();
+
         Rows.Clear();
         if (_selectedProfile is null)
             return;
@@ -311,9 +449,14 @@ public sealed class SettingsSyncViewModel : ObservableObject
         try
         {
             var result = _service.SyncNow();
-            Message = result.Copied.Count == 0
+            var parts = new List<string>();
+            if (result.Copied.Count > 0)
+                parts.Add($"{NameFor(Settings.SourceCharacterId)}'s layout to {result.Copied.Count} character file(s)");
+            if (result.AccountsCopied.Count > 0)
+                parts.Add($"account {Settings.SourceAccountId}'s settings to {result.AccountsCopied.Count} account file(s)");
+            Message = parts.Count == 0
                 ? "Nothing to copy."
-                : $"Synced {NameFor(Settings.SourceCharacterId)}'s layout to {result.Copied.Count} character file(s). The originals are backed up.";
+                : $"Synced {string.Join(" and ", parts)}. The originals are backed up.";
         }
         catch (Exception e)
         {
@@ -358,7 +501,9 @@ public sealed class SettingsSyncViewModel : ObservableObject
         try
         {
             var restored = batch.Sum(sync.Restore);
-            Message = $"Restored {restored} character file(s) in {batch.Count} profile(s) from " +
+            // A profile can have two zips in one sync: one of characters, one of accounts.
+            var profiles = batch.Select(b => b.ProfilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+            Message = $"Restored {restored} settings file(s) in {profiles} profile(s) from " +
                       $"{batch.Max(b => b.CreatedUtc).ToLocalTime():ddd d MMM HH:mm}.";
         }
         catch (Exception e)
@@ -409,6 +554,44 @@ public sealed class ProfileOptionViewModel : ObservableObject
             < 300 => local.ToString("d MMM HH:mm"),
             _ => local.ToString("d MMM yyyy")
         };
+    }
+}
+
+/// <summary>An account file as the source picker shows it: the id and when it was last written.</summary>
+public sealed class AccountOptionViewModel
+{
+    public AccountOptionViewModel(AccountSettingsFile file)
+    {
+        AccountId = file.AccountId;
+        Label = $"{file.AccountId}  ·  last written {file.LastWriteUtc.ToLocalTime():ddd d MMM HH:mm}";
+    }
+
+    public long AccountId { get; }
+    public string Label { get; }
+}
+
+/// <summary>An account that receives the source account's settings unless unticked.</summary>
+public sealed class AccountTargetViewModel : ObservableObject
+{
+    public AccountTargetViewModel(long accountId, bool included)
+    {
+        AccountId = accountId;
+        _included = included;
+    }
+
+    public event Action? Changed;
+
+    public long AccountId { get; }
+
+    private bool _included;
+    public bool Included
+    {
+        get => _included;
+        set
+        {
+            if (Set(ref _included, value))
+                Changed?.Invoke();
+        }
     }
 }
 

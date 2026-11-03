@@ -106,6 +106,7 @@ public sealed class SettingsSyncService
 
         var result = SettingsSyncPlanner.Run(plan, Settings.SourceCharacterId, CreateSync(), Guid.NewGuid());
         var profiles = plan.Steps.Count(s => s.Targets.Count > 0);
+        var accountProfiles = plan.AccountSteps.Count(s => s.Targets.Count > 0);
 
         Settings.LastSyncUtc = DateTime.UtcNow;
         _failedOn = null;
@@ -115,9 +116,21 @@ public sealed class SettingsSyncService
         var skipped = plan.SkippedProfiles.Count == 0
             ? string.Empty
             : $" Skipped {plan.SkippedProfiles.Count} profile(s) with no copy of the source character's settings.";
-        Synced?.Invoke((result.Copied.Count == 0
+        if (plan.SkippedAccountProfiles.Count > 0)
+            skipped += $" Skipped account settings in {plan.SkippedAccountProfiles.Count} profile(s) with no copy of the source account's file.";
+
+        if (plan.AccountSourceMissing)
+            skipped += $" Account settings were not copied: account {Settings.SourceAccountId} has no file in the selected profile.";
+
+        var parts = new List<string>();
+        if (result.Copied.Count > 0)
+            parts.Add($"layout to {result.Copied.Count} character file(s) in {profiles} profile(s)");
+        if (result.AccountsCopied.Count > 0)
+            parts.Add($"account settings to {result.AccountsCopied.Count} account file(s) in {accountProfiles} profile(s)");
+
+        Synced?.Invoke((parts.Count == 0
             ? $"Settings sync {how}: nothing to copy."
-            : $"Synced layout to {result.Copied.Count} character file(s) in {profiles} profile(s) {how}.") + skipped);
+            : $"Synced {string.Join(" and ", parts)} {how}.") + skipped);
         return result;
     }
 }

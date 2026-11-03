@@ -35,6 +35,15 @@ public sealed class SettingsSyncConfig
     /// <summary>Characters left alone, for an alt that deliberately keeps its own layout.</summary>
     public List<long> ExcludedCharacterIds { get; set; } = new();
 
+    /// <summary>Also copy account settings (<c>core_user_&lt;id&gt;.dat</c>), which hold keyboard shortcuts. Off until switched on.</summary>
+    public bool SyncAccountSettings { get; set; }
+
+    /// <summary>Account whose settings are copied. Zero means none chosen: never guessed, because the wrong guess overwrites the player's shortcuts.</summary>
+    public long SourceAccountId { get; set; }
+
+    /// <summary>Accounts left alone. An exclusion list, like <see cref="ExcludedCharacterIds"/>.</summary>
+    public List<long> ExcludedAccountIds { get; set; } = new();
+
     /// <summary>Sync automatically once every client has closed. Off until switched on.</summary>
     public bool AutoSync { get; set; }
 
@@ -45,6 +54,17 @@ public sealed class SettingsSyncConfig
 
     [JsonIgnore]
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ProfilePath) && SourceCharacterId > 0;
+
+    [JsonIgnore]
+    public bool CopiesAccountSettings => SyncAccountSettings && SourceAccountId > 0;
+
+    /// <summary>Every account in <paramref name="available"/> except the source and the excluded.</summary>
+    public IReadOnlyList<long> AccountTargetsAmong(IEnumerable<long> available) =>
+        available.Where(id => id != SourceAccountId && !ExcludedAccountIds.Contains(id)).ToList();
+
+    /// <summary>Accounts in another profile. As with characters, the source account's copy there is a target too.</summary>
+    public IReadOnlyList<long> AccountTargetsInOtherProfile(IEnumerable<long> available) =>
+        available.Where(id => !ExcludedAccountIds.Contains(id)).ToList();
 
     /// <summary>Every id in <paramref name="available"/> except the source and the excluded.</summary>
     public IReadOnlyList<long> TargetsAmong(IEnumerable<long> available) =>

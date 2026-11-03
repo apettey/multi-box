@@ -10,7 +10,7 @@ repeated once per client.
 Built to replace a screen full of separate windows — one PyEveLiveDPS instance per
 character, plus four copies of every chat channel — with one place to look.
 
-> **Status:** core is built and verified against real logs (185 tests, 99.97% line coverage,
+> **Status:** core is built and verified against real logs (199 tests, 99.97% line coverage,
 > Windows binaries publish clean, EULA compliance audited and enforced in CI). The dashboard
 > and the client previews are running on Windows. Targets .NET 10. See
 > [known gaps](docs/ARCHITECTURE.md#known-gaps).
@@ -42,8 +42,9 @@ queries (`EnumWindows`, `IsWindowVisible`, `GetWindowTextLength`, `GetWindowText
 plus the four DWM thumbnail calls that draw the client previews, and three that raise a single
 client you clicked or cycled to. It cannot move, resize or send anything to a game window.
 
-**The one EVE file it writes is a character settings file**, and only when you ask it to sync
-layouts. Settings sync copies one character's `core_char_<id>.dat` over your others — whole
+**The only EVE files it writes are settings files**, and only when you ask it to sync. Settings
+sync copies one character's `core_char_<id>.dat` over your others and, if you tick it, one
+account's `core_user_<id>.dat` (keyboard shortcuts live there) over your other accounts — whole
 files, never edited — and only while every client is closed, after zipping the originals to
 `%APPDATA%\MultiBox\settings-backups`. It is the same copy players make by hand, and a test
 fails the build if any other code starts writing files.
@@ -201,7 +202,7 @@ Full key reference: [CONFIGURATION.md](docs/CONFIGURATION.md).
 dotnet test
 ```
 
-185 tests, ~510 ms. Most run against the **real logs in `samples/`** — including the
+199 tests, ~510 ms. Most run against the **real logs in `samples/`** — including the
 deliberate ECM/scramble/web session — rather than invented fixtures, because a parser that
 only works on made-up data cannot pass. The corpus test asserts that over 99% of real combat
 lines parse; it currently sits at **99.97%** (14,383 of 14,388) and prints whatever it could

@@ -1,6 +1,18 @@
 {
   "features": [
     {
+      "pr": 23,
+      "date": "2026-11-03",
+      "title": "Keyboard shortcuts in settings sync",
+      "description": "Settings sync can now give your other accounts the same keyboard shortcuts. Open SYNC LAYOUT in the header, tick Also copy account settings and choose the account to copy from.\n\nThe whole account file is copied, so camera settings, chat channel lists and saved overview profiles go along too. It only runs while every EVE client is closed, and backs up the files first. Resolution, monitor, graphics and audio are never copied. With automatic sync on, shortcuts you change on any account but the source are overwritten when the last client closes, so change them on the source account.",
+      "images": [
+        {
+          "src": "whats-new/img/pr-23-account-settings-sync.png",
+          "caption": "The SYNC LAYOUT window, with Also copy account settings ticked"
+        }
+      ]
+    },
+    {
       "pr": 21,
       "date": "2026-10-19",
       "title": "Sync each profile within itself",

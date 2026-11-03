@@ -246,6 +246,210 @@ public sealed class SettingsSyncTests : IDisposable
         Assert.Single(left.Select(b => b.BatchId).Distinct());
     }
 
+    private const long MainAccount = 20000001;
+    private const long AltAccount = 20000002;
+    private const long OtherAccount = 20000003;
+
+    private SettingsSyncConfig AccountConfig(params string[] alsoApply)
+    {
+        Write($"core_user_{AltAccount}.dat", "alt shortcuts");
+        Write($"core_user_{OtherAccount}.dat", "other shortcuts");
+        Write("core_user__.dat", "shared user default");
+        Write("core_public__.yaml", "resolution and monitor");
+
+        var config = new SettingsSyncConfig
+        {
+            ProfilePath = _profile,
+            SourceCharacterId = Commander,
+            SyncAccountSettings = true,
+            SourceAccountId = MainAccount,
+        };
+        config.AlsoApplyToProfilePaths.AddRange(alsoApply);
+        return config;
+    }
+
+    [Theory]
+    [InlineData("core_user_20000001.dat", 20000001L)]
+    [InlineData("core_user__.dat", null)]
+    [InlineData("core_char_20000001.dat", null)]
+    [InlineData("core_user_20000001.dat.bck", null)]
+    public void ParsesAccountIdOnlyFromAccountFiles(string name, long? expected) =>
+        Assert.Equal(expected, EveSettingsLocator.TryParseAccountId(name));
+
+    [Fact]
+    public void CopiesAccountSettingsAndLeavesEverythingElseAlone()
+    {
+        var plan = SettingsSyncPlanner.BuildFromDisk(AccountConfig());
+
+        var result = SettingsSyncPlanner.Run(plan, Commander, new CharacterSettingsSync(_backups), Guid.NewGuid());
+
+        Assert.Equal(new[] { AltAccount, OtherAccount }, result.AccountsCopied.Order());
+        Assert.Equal("account settings", Read($"core_user_{AltAccount}.dat"));
+        Assert.Equal("account settings", Read($"core_user_{OtherAccount}.dat"));
+        Assert.Equal("shared user default", Read("core_user__.dat"));
+        Assert.Equal("resolution and monitor", Read("core_public__.yaml"));
+        Assert.Equal("display settings", Read("prefs.ini"));
+        Assert.Empty(Directory.GetFiles(_profile, "*.multibox-tmp"));
+    }
+
+    [Fact]
+    public void AccountSettingsAreOffUntilSwitchedOnAndASourceIsChosen()
+    {
+        var config = AccountConfig();
+        config.SyncAccountSettings = false;
+        Assert.Empty(SettingsSyncPlanner.BuildFromDisk(config).AccountSteps);
+
+        config.SyncAccountSettings = true;
+        config.SourceAccountId = 0;
+        Assert.Empty(SettingsSyncPlanner.BuildFromDisk(config).AccountSteps);
+
+        // A source whose file has gone copies nothing, and the characters still sync.
+        config.SourceAccountId = 20000099;
+        var plan = SettingsSyncPlanner.BuildFromDisk(config);
+        Assert.Empty(plan.AccountSteps);
+        Assert.Equal(2, plan.TargetCount);
+    }
+
+    [Fact]
+    public void LeavesExcludedAccountsAndNeverCreatesAccountFiles()
+    {
+        var config = AccountConfig();
+        config.ExcludedAccountIds.Add(OtherAccount);
+
+        var result = SettingsSyncPlanner.Run(SettingsSyncPlanner.BuildFromDisk(config), Commander,
+            new CharacterSettingsSync(_backups), Guid.NewGuid());
+
+        Assert.Equal(new[] { AltAccount }, result.AccountsCopied);
+        Assert.Equal("other shortcuts", Read($"core_user_{OtherAccount}.dat"));
+
+        var direct = new CharacterSettingsSync(_backups).ApplyAccounts(_profile, MainAccount, _profile, new[] { 20000099L });
+        Assert.Empty(direct.AccountsCopied);
+        Assert.False(File.Exists(Path.Combine(_profile, "core_user_20000099.dat")));
+    }
+
+    [Fact]
+    public void RestoringASyncPutsBackCharactersAndAccountsAsTheyWere()
+    {
+        var plan = SettingsSyncPlanner.BuildFromDisk(AccountConfig());
+        var sync = new CharacterSettingsSync(_backups);
+
+        SettingsSyncPlanner.Run(plan, Commander, sync, Guid.NewGuid());
+        Assert.Equal("commander layout", Read(Char(Major)));
+
+        var batch = sync.LatestBatch(new[] { _profile });
+        Assert.Equal(2, batch.Count);
+        foreach (var backup in batch)
+            sync.Restore(backup);
+
+        Assert.Equal("major layout", Read(Char(Major)));
+        Assert.Equal("alt shortcuts", Read($"core_user_{AltAccount}.dat"));
+        Assert.Equal("other shortcuts", Read($"core_user_{OtherAccount}.dat"));
+        Assert.Equal("account settings", Read($"core_user_{MainAccount}.dat"));
+    }
+
+    [Fact]
+    public void AccountSettingsFollowTheProfileMode()
+    {
+        var split = MakeProfile("Split_Screen");
+        File.WriteAllText(Path.Combine(split, $"core_user_{MainAccount}.dat"), "split main");
+        File.WriteAllText(Path.Combine(split, $"core_user_{AltAccount}.dat"), "split alt");
+        var noSource = MakeProfile("Mining");
+        File.WriteAllText(Path.Combine(noSource, $"core_user_{AltAccount}.dat"), "mining alt");
+        var config = AccountConfig(split, noSource);
+
+        config.Mode = SettingsSyncMode.WithinEach;
+        var within = SettingsSyncPlanner.BuildFromDisk(config);
+        Assert.Equal(new[] { noSource }, within.SkippedAccountProfiles);
+        SettingsSyncPlanner.Run(within, Commander, new CharacterSettingsSync(_backups), Guid.NewGuid());
+        Assert.Equal("split main", File.ReadAllText(Path.Combine(split, $"core_user_{AltAccount}.dat")));
+        Assert.Equal("mining alt", File.ReadAllText(Path.Combine(noSource, $"core_user_{AltAccount}.dat")));
+
+        config.Mode = SettingsSyncMode.CopyInto;
+        var into = SettingsSyncPlanner.BuildFromDisk(config);
+        Assert.Empty(into.SkippedAccountProfiles);
+        SettingsSyncPlanner.Run(into, Commander, new CharacterSettingsSync(_backups), Guid.NewGuid());
+        Assert.Equal("account settings", File.ReadAllText(Path.Combine(split, $"core_user_{MainAccount}.dat")));
+        Assert.Equal("account settings", File.ReadAllText(Path.Combine(noSource, $"core_user_{AltAccount}.dat")));
+    }
+
+    [Fact]
+    public void AnAccountOnlySyncStillCountsAsSomethingToDoAndIsBackedUp()
+    {
+        var config = AccountConfig();
+        config.ExcludedCharacterIds.AddRange(new[] { Major, Lieutenant });
+
+        var plan = SettingsSyncPlanner.BuildFromDisk(config);
+        Assert.Equal(2, plan.TargetCount);
+
+        var result = SettingsSyncPlanner.Run(plan, Commander, new CharacterSettingsSync(_backups), Guid.NewGuid());
+
+        Assert.Empty(result.Copied);
+        Assert.Equal(2, result.AccountsCopied.Count);
+        Assert.NotNull(result.BackupPath);
+        Assert.Equal("major layout", Read(Char(Major)));
+    }
+
+    [Fact]
+    public void FlagsASourceAccountWhoseFileHasGone()
+    {
+        var config = AccountConfig();
+        Assert.False(SettingsSyncPlanner.BuildFromDisk(config).AccountSourceMissing);
+
+        config.SourceAccountId = 20000099;
+        Assert.True(SettingsSyncPlanner.BuildFromDisk(config).AccountSourceMissing);
+
+        config.SyncAccountSettings = false;
+        Assert.False(SettingsSyncPlanner.BuildFromDisk(config).AccountSourceMissing);
+    }
+
+    [Fact]
+    public void ExcludedAccountsAreLeftAloneInOtherProfiles()
+    {
+        var split = MakeProfile("Split_Screen");
+        File.WriteAllText(Path.Combine(split, $"core_user_{MainAccount}.dat"), "split main");
+        File.WriteAllText(Path.Combine(split, $"core_user_{AltAccount}.dat"), "split alt");
+        var config = AccountConfig(split);
+        config.ExcludedAccountIds.Add(AltAccount);
+
+        SettingsSyncPlanner.Run(SettingsSyncPlanner.BuildFromDisk(config), Commander,
+            new CharacterSettingsSync(_backups), Guid.NewGuid());
+
+        Assert.Equal("split alt", File.ReadAllText(Path.Combine(split, $"core_user_{AltAccount}.dat")));
+        Assert.Equal("account settings", File.ReadAllText(Path.Combine(split, $"core_user_{MainAccount}.dat")));
+    }
+
+    [Fact]
+    public void RestoresCharactersAndAccountsAcrossEveryProfile()
+    {
+        var split = MakeProfile("Split_Screen", (Major, "split major"));
+        File.WriteAllText(Path.Combine(split, $"core_user_{AltAccount}.dat"), "split alt");
+        var config = AccountConfig(split);
+        var sync = new CharacterSettingsSync(_backups);
+
+        SettingsSyncPlanner.Run(SettingsSyncPlanner.BuildFromDisk(config), Commander, sync, Guid.NewGuid());
+        Assert.Equal("account settings", File.ReadAllText(Path.Combine(split, $"core_user_{AltAccount}.dat")));
+
+        var batch = sync.LatestBatch(new[] { split });
+        Assert.Equal(4, batch.Count);
+        foreach (var backup in batch)
+            sync.Restore(backup);
+
+        Assert.Equal("split major", File.ReadAllText(Path.Combine(split, Char(Major))));
+        Assert.Equal("split alt", File.ReadAllText(Path.Combine(split, $"core_user_{AltAccount}.dat")));
+        Assert.Equal("major layout", Read(Char(Major)));
+        Assert.Equal("alt shortcuts", Read($"core_user_{AltAccount}.dat"));
+    }
+
+    [Fact]
+    public void AnAccountFileChangingCountsAsAReasonToAutoSync()
+    {
+        var config = AccountConfig();
+        var changed = new DateTime(2030, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(Path.Combine(_profile, $"core_user_{MainAccount}.dat"), changed);
+
+        Assert.Equal(changed, SettingsSyncPlanner.NewestWrite(SettingsSyncPlanner.BuildFromDisk(config), Commander));
+    }
+
     [Fact]
     public void ExclusionsAndTheSourceAreNeverTargets()
     {
@@ -263,6 +467,9 @@ public sealed class SettingsSyncTests : IDisposable
         config.SettingsSync.SourceCharacterId = Commander;
         config.SettingsSync.ExcludedCharacterIds.Add(Lieutenant);
         config.SettingsSync.AutoSync = true;
+        config.SettingsSync.SyncAccountSettings = true;
+        config.SettingsSync.SourceAccountId = MainAccount;
+        config.SettingsSync.ExcludedAccountIds.Add(AltAccount);
         config.Save(path);
 
         var loaded = MultiBoxConfig.Load(path).SettingsSync;
@@ -271,6 +478,9 @@ public sealed class SettingsSyncTests : IDisposable
         Assert.Equal(Commander, loaded.SourceCharacterId);
         Assert.Equal(new[] { Lieutenant }, loaded.ExcludedCharacterIds);
         Assert.True(loaded.AutoSync);
+        Assert.True(loaded.SyncAccountSettings);
+        Assert.Equal(MainAccount, loaded.SourceAccountId);
+        Assert.Equal(new[] { AltAccount }, loaded.ExcludedAccountIds);
     }
 }
 

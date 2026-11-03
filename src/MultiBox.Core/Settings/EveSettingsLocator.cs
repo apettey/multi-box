@@ -21,6 +21,13 @@ public sealed record SettingsProfile(string ServerFolder, string Name, string Pa
 public sealed record CharacterSettingsFile(long CharacterId, string Path, DateTime LastWriteUtc);
 
 /// <summary>
+/// A <c>core_user_&lt;accountID&gt;.dat</c> file, which holds keyboard shortcuts among other
+/// per-account settings. No local file links an account id to its characters, so these can only
+/// be shown by id and write time.
+/// </summary>
+public sealed record AccountSettingsFile(long AccountId, string Path, DateTime LastWriteUtc);
+
+/// <summary>
 /// Finds EVE's per-character settings files. Nothing here opens a file; it lists names and
 /// timestamps only.
 ///
@@ -33,6 +40,10 @@ public static class EveSettingsLocator
 {
     /// <summary>Matches only real per-character files: <c>core_char__.dat</c> is a shared default.</summary>
     private static readonly Regex CharFile = new(@"^core_char_(?<id>\d+)\.dat$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    /// <summary>Matches only real per-account files: <c>core_user__.dat</c> is a shared default.</summary>
+    private static readonly Regex UserFile = new(@"^core_user_(?<id>\d+)\.dat$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public static string DefaultRoot =>
@@ -91,6 +102,29 @@ public static class EveSettingsLocator
         }
 
         return files.OrderBy(f => f.CharacterId).ToList();
+    }
+
+    public static IReadOnlyList<AccountSettingsFile> AccountFiles(string profilePath)
+    {
+        if (!Directory.Exists(profilePath))
+            return Array.Empty<AccountSettingsFile>();
+
+        var files = new List<AccountSettingsFile>();
+        foreach (var path in Directory.EnumerateFiles(profilePath, "core_user_*.dat"))
+        {
+            var id = TryParseAccountId(System.IO.Path.GetFileName(path));
+            if (id is not null)
+                files.Add(new AccountSettingsFile(id.Value, path, File.GetLastWriteTimeUtc(path)));
+        }
+
+        return files.OrderBy(f => f.AccountId).ToList();
+    }
+
+    /// <summary>The account id in a <c>core_user_&lt;id&gt;.dat</c> name, or null for anything else.</summary>
+    public static long? TryParseAccountId(string fileName)
+    {
+        var m = UserFile.Match(fileName);
+        return m.Success && long.TryParse(m.Groups["id"].Value, out var id) && id > 0 ? id : null;
     }
 
     /// <summary>The character id in a <c>core_char_&lt;id&gt;.dat</c> name, or null for anything else.</summary>
