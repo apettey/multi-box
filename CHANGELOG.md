@@ -9,6 +9,22 @@ This file is generated: every merge to `main` is released automatically, and the
 adds its version section here from the [`changelog/`](changelog/README.md) entries and
 announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.md).
 
+## [1.2.0] - 2026-11-03
+
+### What's new
+
+- **Keyboard shortcuts in settings sync.** Settings sync can now give your other accounts the same keyboard shortcuts. Open SYNC LAYOUT in the header, tick Also copy account settings and choose the account to copy from. The whole account file is copied, so camera settings, chat channel lists and saved overview profiles go along too. It only runs while every EVE client is closed, and backs up the files first. Resolution, monitor, graphics and audio are never copied. With automatic sync on, shortcuts you change on any account but the source are overwritten when the last client closes, so change them on the source account. (#23)
+
+### Changes
+
+- [Keyboard shortcuts in settings sync](https://github.com/apettey/multi-box/blob/f70e74790c02416a13e145f9ec5374441d14671e/changelog/2026-11-03-account-settings-sync/README.md): Settings sync can now copy your keyboard shortcuts to your other accounts, along with camera settings, chat channels and saved overview profiles
+
+### Pull requests
+
+- Sync keyboard shortcuts by copying account settings (#23)
+
+**Full diff:** https://github.com/apettey/multi-box/compare/v1.1.1...v1.2.0
+
 ## [1.1.1] - 2026-10-19
 
 ### Pull requests
