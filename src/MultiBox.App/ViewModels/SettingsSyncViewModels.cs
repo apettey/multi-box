@@ -170,7 +170,7 @@ public sealed class SettingsSyncViewModel : ObservableObject
         // Every account the sync can reach, including those only in a ticked profile: each one
         // that can be overwritten has to have a tick that stops it.
         var reachable = Accounts.Select(a => a.AccountId)
-            .Concat(Settings.OtherProfiles().SelectMany(p => EveSettingsLocator.AccountFiles(p).Select(f => f.AccountId)))
+            .Concat(Settings.OtherProfiles().SelectMany(AccountIdsIn))
             .Where(id => id != Settings.SourceAccountId)
             .Distinct()
             .Order();
@@ -180,6 +180,19 @@ public sealed class SettingsSyncViewModel : ObservableObject
             var row = new AccountTargetViewModel(id, !Settings.ExcludedAccountIds.Contains(id));
             row.Changed += OnAccountTargetChanged;
             AccountTargets.Add(row);
+        }
+    }
+
+    /// <summary>A ticked folder that cannot be read lists nothing; the summaries say why.</summary>
+    private static IEnumerable<long> AccountIdsIn(string profile)
+    {
+        try
+        {
+            return EveSettingsLocator.AccountFiles(profile).Select(f => f.AccountId).ToList();
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            return Array.Empty<long>();
         }
     }
 
