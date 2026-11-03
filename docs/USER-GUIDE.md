@@ -284,8 +284,9 @@ you, and nothing is copied until you pick.
 The whole file is copied, because MultiBox never edits EVE's files. That means the other accounts
 also get the source account's **chat channel list, camera settings and saved overview profiles**,
 not only its shortcuts. The account copy follows the same **Also apply to** choices as the
-layout, is backed up the same way, runs with automatic sync when ticked, and is undone by
-**RESTORE LAST BACKUP**.
+layout, is backed up the same way, and is undone by **RESTORE LAST BACKUP**. With automatic sync
+on it runs every time, so shortcuts you change on any account but the source are overwritten when
+the last client closes: change them on the source account.
 
 ---
 
