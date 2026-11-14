@@ -9,6 +9,22 @@ This file is generated: every merge to `main` is released automatically, and the
 adds its version section here from the [`changelog/`](changelog/README.md) entries and
 announcements that went into it. Don't edit it by hand; see [AGENTS.md](AGENTS.md).
 
+## [1.3.0] - 2026-11-14
+
+### What's new
+
+- **Logged-off clients stay on the dashboard.** Logging a character off without closing the client no longer makes it disappear from MultiBox. The client gets a Character select card after your character cards, with its live preview: click it to bring that client to the front and log in again. When a character logs back in, the card turns back into that character's own card. Character select cards don't count towards CARDS, so a full squad never pushes them onto a tab of their own. (#24)
+
+### Changes
+
+- [Logged-off clients stay on the dashboard](https://github.com/apettey/multi-box/blob/f2ddce9739d59183dc0d7c81f6654dceb719a859/changelog/2026-11-14-logged-off-clients/README.md): A client you log off without closing stays on the grid as a Character select card you can click to bring forward
+
+### Pull requests
+
+- Keep logged-off clients on the dashboard as Character select cards (#24)
+
+**Full diff:** https://github.com/apettey/multi-box/compare/v1.2.0...v1.3.0
+
 ## [1.2.0] - 2026-11-03
 
 ### What's new
