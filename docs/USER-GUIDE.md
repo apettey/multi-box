@@ -76,8 +76,7 @@ client gets a **Character select** card after all the character cards, on the la
 (it does not count towards `CARDS`, so a full squad never pushes it onto a tab of its own), with
 its live thumbnail; click it to bring the client to the front and log in again. It has no numbers and
 no F-key label, and it cannot be dragged. When a character logs back in, the card is replaced
-by that character's own card within a few seconds. The status line counts them: "Watching 5
-character(s). 2 at character select."
+by that character's own card within a few seconds.
 
 Untick **Open only** to show every character it has ever seen a log for this session.
 

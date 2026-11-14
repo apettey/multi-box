@@ -387,7 +387,6 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         Status = (_all.Count == 0
             ? "No EVE logs found yet — waiting for a client to write one."
             : $"Watching {_all.Count} character(s).")
-            + (_idle.Count == 0 ? string.Empty : $"  {_idle.Count} at character select.")
             + (_syncNote is null ? string.Empty : "  " + _syncNote);
     }
 

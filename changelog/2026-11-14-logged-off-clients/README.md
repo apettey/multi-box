@@ -34,5 +34,4 @@ brings that client to the front.
   cannot be told apart from a closed one, since the window no longer names it.
 - The grid now notices when the set of cards changes at the same count (a character logging
   off swaps one card for another); it used to compare counts only.
-- Status line adds "N at character select."
 - Tests: `IdleClientTests`, 39 cases, covering the title rules, the stable order, idle clients on the last squad and the F-key labels. Full suite 238/238.
