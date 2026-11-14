@@ -76,7 +76,7 @@ only works on made-up data cannot pass.
 | `ChatDedupTests` | UTF-16 handling, per-line BOMs, cross-client dedup, tailer semantics |
 | `ConfigAndAlertTests` | config round-trip, eve-o-preview import, EWAR hold behaviour |
 | `RunningClientTests` | cards for open clients that have written no log, id lookup, placeholder hand-off |
-| `IdleClientTests` | telling a logged-in client from one at character select by its title, and keeping the character-select cards in a stable order |
+| `IdleClientTests` | telling a logged-in client from one at character select by its title, and keeping the character-select cards in a stable order, on the last squad, with no F-key label |
 | `SettingsSyncTests` | settings folder discovery, copy within and across profiles, batch backup and restore, that nothing but `core_char_<id>.dat` and opted-in `core_user_<id>.dat` is written, the auto-sync timing rules |
 | `SettingsSyncPlannerTests` | the two ways ticked profiles are synced (copy one layout into them, or sync each within itself), skipped profiles, exclusions, more than ten characters, restore |
 | `EulaComplianceTests` | banned APIs, the native allow-list, read-only log access, the file-write allow-list, outbound hosts |
@@ -84,7 +84,7 @@ only works on made-up data cannot pass.
 Settings files are opaque binary that MultiBox never parses, so the settings sync tests use
 stand-in bytes in a temporary folder rather than a sample from `samples/`.
 
-227 tests total, ~840 ms. The table lists the main suites, not every file.
+238 tests total, ~720 ms. The table lists the main suites, not every file.
 
 ### The coverage test
 

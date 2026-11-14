@@ -332,10 +332,15 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         // Only this session's files: replaying yesterday's combat would be noise.
         _session.Refresh(DateTime.UtcNow.Date.AddDays(-1));
 
-        // A running client is on the grid whether or not it has written a log yet.
+        // One window pass for the whole rescan, so a client logging in or out mid-scan is
+        // seen the same way everywhere below: never as both a character and an idle client.
+        EveClientScan? scan = null;
         try
         {
-            _session.AddRunningClients(EveClientLocator.FindClients().Select(c => c.CharacterName));
+            scan = EveClientLocator.Scan();
+
+            // A running client is on the grid whether or not it has written a log yet.
+            _session.AddRunningClients(scan.LoggedIn.Select(c => c.CharacterName));
         }
         catch (Exception)
         {
@@ -371,7 +376,8 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         if (added)
             ApplyOrder();
 
-        TrackClientWindows();
+        if (scan is not null)
+            TrackClientWindows(scan);
         RefreshCycleTags();
         RefreshVisible();
 
@@ -386,11 +392,11 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Matches cards to running client windows so thumbnails and focus have a target.</summary>
-    private void TrackClientWindows()
+    private void TrackClientWindows(EveClientScan scan)
     {
         try
         {
-            var running = EveClientLocator.FindClients();
+            var running = scan.LoggedIn;
             var foreground = running.FirstOrDefault(c => c.IsForeground)?.CharacterName;
 
             foreach (var card in _all)
@@ -404,8 +410,8 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
                     foreground.Equals(card.Name, StringComparison.OrdinalIgnoreCase);
             }
 
-            EveClientLocator.TrackLayouts(_config);
-            TrackIdleClients(EveClientLocator.FindCharacterSelectClients());
+            EveClientLocator.TrackLayouts(_config, running);
+            TrackIdleClients(scan.CharacterSelect);
         }
         catch (Exception)
         {
@@ -463,6 +469,10 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     private List<ClientCardViewModel> Visible() =>
         VisibleCharacters().Cast<ClientCardViewModel>().Concat(_idle).ToList();
 
+    /// <summary>One squad tab's cards; idle clients ride on the last squad.</summary>
+    private List<ClientCardViewModel> SquadMembers(int index) =>
+        FleetLayout.Squad<ClientCardViewModel>(VisibleCharacters(), _idle, index, _config.SquadSize);
+
     /// <summary>Re-evaluates who is on the grid. Cheap, and called whenever clients change.</summary>
     private void RefreshVisible()
     {
@@ -487,25 +497,28 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
 
     private int _hiddenCount;
 
-    /// <summary>Characters known from logs whose client is closed.</summary>
+    /// <summary>
+    /// Characters known from logs with no client logged in as them: closed, or logged off to
+    /// character select. The two cannot be told apart, since a character-select window's title
+    /// no longer names anyone.
+    /// </summary>
     public int HiddenCount
     {
         get => _hiddenCount;
         private set { if (Set(ref _hiddenCount, value)) Raise(nameof(HiddenText)); }
     }
 
-    public string HiddenText => _hiddenCount > 0 ? $"{_hiddenCount} closed" : string.Empty;
+    public string HiddenText => _hiddenCount > 0 ? $"{_hiddenCount} offline" : string.Empty;
 
     private void RebuildSquads()
     {
-        var visible = Visible();
-        var size = Math.Max(1, _config.SquadSize);
-        var count = FleetLayout.SquadCount(visible.Count, size);
+        // Idle clients add no squads of their own; they ride on the last one.
+        var count = FleetLayout.SquadCount(VisibleCharacters().Count, Math.Max(1, _config.SquadSize));
 
         Squads.Clear();
         for (var i = 0; i < count; i++)
         {
-            var members = FleetLayout.Squad(visible, i, size).Count();
+            var members = SquadMembers(i).Count;
             Squads.Add(new SquadTabViewModel(i, $"SQUAD {i + 1}", members));
         }
 
@@ -521,12 +534,10 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         _activeSquad = Math.Clamp(index, 0, Squads.Count - 1);
 
         Cards.Clear();
-        var members = FleetLayout.Squad(Visible(), _activeSquad, _config.SquadSize).ToList();
+        var members = SquadMembers(_activeSquad);
         for (var i = 0; i < members.Count; i++)
         {
-            // F1-F12 label the first twelve; past that there is no function key to name.
-            // A client at character select has no pilot to switch to, so it gets no label.
-            members[i].Hotkey = i < 12 && members[i] is CharacterCardViewModel ? "F" + (i + 1) : string.Empty;
+            members[i].Hotkey = FleetLayout.HotkeyLabel(i, members[i] is CharacterCardViewModel);
             Cards.Add(members[i]);
         }
 

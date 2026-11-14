@@ -19,13 +19,20 @@ brings that client to the front.
 
 - `MultiBox.Core.Model.EveWindowTitle`: the title rules (`EVE - <name>` logged in, bare `EVE`
   at character select) moved out of `EveClientLocator` so they are tested off Windows.
-- `EveClientLocator.FindCharacterSelectClients`; `FindClients` and `CountOpenClients` now share
-  one window enumeration. Same native calls as before: no new APIs, file writes or hosts.
+- `EveClientLocator.Scan` classifies every window in one pass into logged-in clients and clients
+  at character select; a rescan uses that one snapshot throughout, so a client logging in or out
+  mid-scan never shows as both or neither. `FindClients` and `CountOpenClients` share the
+  enumeration helper. Same native calls as before: no new APIs, file writes or hosts.
 - `FleetLayout.KeepOrder` keeps the character-select cards in first-seen order, because
   `EnumWindows` reports z-order and would otherwise reshuffle them on every alt-tab.
+- `FleetLayout.Squad(characters, idle, ...)` puts character-select cards on the last squad
+  without counting them against the squad size, so a full squad never pushes them onto a tab of
+  their own. `FleetLayout.HotkeyLabel` gives them no F-key label.
 - `ClientCardViewModel` base for anything on the grid; `IdleClientCardViewModel` and the
-  `IdleClientCard` template. Character-select cards get no F-key label and cannot be dragged.
+  `IdleClientCard` template. Character-select cards cannot be dragged.
+- The header's "N closed" now reads "N offline": a character logged off to character select
+  cannot be told apart from a closed one, since the window no longer names it.
 - The grid now notices when the set of cards changes at the same count (a character logging
   off swaps one card for another); it used to compare counts only.
 - Status line adds "N at character select."
-- Tests: `IdleClientTests`, 28 cases. Full suite 227/227.
+- Tests: `IdleClientTests`, 39 cases, covering the title rules, the stable order, idle clients on the last squad and the F-key labels. Full suite 238/238.

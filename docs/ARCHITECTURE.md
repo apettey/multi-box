@@ -30,7 +30,7 @@ from a Mac via `-p:EnableWindowsTargeting=true`.
 | `src/MultiBox.Core` | `net10.0` | discovery, tailing, parsing, dedup, stats, config, ESI |
 | `src/MultiBox.App` | `net10.0-windows` | WPF dashboard, audio alerts, window interop |
 | `src/MultiBox.Replay` | `net10.0` | console diagnostics (`doctor`, `replay`, `chat`) |
-| `tests/MultiBox.Core.Tests` | `net10.0` | 227 xunit tests, mostly against real logs |
+| `tests/MultiBox.Core.Tests` | `net10.0` | 238 xunit tests, mostly against real logs |
 
 `MultiBox.Core` has **no third-party dependencies** — `System.Text.Json` and
 `System.Net.Http` only.

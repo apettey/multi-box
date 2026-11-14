@@ -82,6 +82,65 @@ public sealed class IdleClientTests
         Assert.Equal(new[] { 5, 4, 6 }, order);
     }
 
+    private static readonly string[] Idle = { "select-1", "select-2" };
+
+    private static string[] Pilots(int count) =>
+        Enumerable.Range(1, count).Select(i => "pilot-" + i).ToArray();
+
+    [Fact]
+    public void Idle_clients_follow_the_characters_on_a_single_squad()
+    {
+        var squad = FleetLayout.Squad(Pilots(3), Idle, 0, 10);
+        Assert.Equal(new[] { "pilot-1", "pilot-2", "pilot-3", "select-1", "select-2" }, squad);
+    }
+
+    [Fact]
+    public void A_full_squad_does_not_push_idle_clients_onto_a_tab_of_their_own()
+    {
+        // Five pilots, five per squad: logging a sixth client off must not create SQUAD 2.
+        Assert.Equal(1, FleetLayout.SquadCount(5, 5));
+        var squad = FleetLayout.Squad(Pilots(5), Idle, 0, 5);
+        Assert.Equal(7, squad.Count);
+        Assert.Equal(Idle, squad.Skip(5));
+    }
+
+    [Fact]
+    public void Idle_clients_ride_only_on_the_last_squad()
+    {
+        var pilots = Pilots(12);
+        Assert.Equal(3, FleetLayout.SquadCount(pilots.Length, 5));
+
+        Assert.Equal(pilots.Take(5), FleetLayout.Squad(pilots, Idle, 0, 5));
+        Assert.Equal(pilots.Skip(5).Take(5), FleetLayout.Squad(pilots, Idle, 1, 5));
+        Assert.Equal(new[] { "pilot-11", "pilot-12", "select-1", "select-2" },
+            FleetLayout.Squad(pilots, Idle, 2, 5));
+    }
+
+    [Fact]
+    public void Only_idle_clients_still_get_shown()
+    {
+        Assert.Equal(1, FleetLayout.SquadCount(0, 5));
+        Assert.Equal(Idle, FleetLayout.Squad(Array.Empty<string>(), Idle, 0, 5));
+    }
+
+    [Fact]
+    public void No_idle_clients_leaves_the_squads_as_they_were()
+    {
+        var pilots = Pilots(7);
+        for (var i = 0; i < 2; i++)
+            Assert.Equal(FleetLayout.Squad(pilots, i, 5), FleetLayout.Squad(pilots, Array.Empty<string>(), i, 5));
+    }
+
+    [Theory]
+    [InlineData(0, true, "F1")]
+    [InlineData(11, true, "F12")]
+    [InlineData(12, true, "")]
+    [InlineData(0, false, "")]
+    [InlineData(5, false, "")]
+    [InlineData(-1, true, "")]
+    public void Only_characters_get_an_f_key_label(int position, bool isCharacter, string expected) =>
+        Assert.Equal(expected, FleetLayout.HotkeyLabel(position, isCharacter));
+
     [Fact]
     public void Many_clients_survive_a_full_reshuffle()
     {
