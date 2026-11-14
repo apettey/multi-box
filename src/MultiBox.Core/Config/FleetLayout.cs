@@ -92,4 +92,21 @@ public static class FleetLayout
         var size = Math.Max(1, squadSize);
         return characters.Skip(Math.Max(0, squadIndex) * size).Take(size);
     }
+
+    /// <summary>
+    /// The items in <paramref name="found"/>, keeping the order of <paramref name="current"/>
+    /// for those already in it and appending new ones in the order found.
+    ///
+    /// Windows are enumerated in z-order, which changes every time a client is focused. A
+    /// list rebuilt straight from the enumeration would reshuffle its cards on each alt-tab.
+    /// </summary>
+    public static List<T> KeepOrder<T>(IEnumerable<T> current, IEnumerable<T> found)
+    {
+        var wanted = found.Distinct().ToList();
+        var present = wanted.ToHashSet();
+        var kept = current.Where(present.Contains).Distinct().ToList();
+        var known = kept.ToHashSet();
+        kept.AddRange(wanted.Where(f => !known.Contains(f)));
+        return kept;
+    }
 }

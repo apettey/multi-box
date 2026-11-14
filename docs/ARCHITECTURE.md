@@ -30,7 +30,7 @@ from a Mac via `-p:EnableWindowsTargeting=true`.
 | `src/MultiBox.Core` | `net10.0` | discovery, tailing, parsing, dedup, stats, config, ESI |
 | `src/MultiBox.App` | `net10.0-windows` | WPF dashboard, audio alerts, window interop |
 | `src/MultiBox.Replay` | `net10.0` | console diagnostics (`doctor`, `replay`, `chat`) |
-| `tests/MultiBox.Core.Tests` | `net10.0` | 185 xunit tests, mostly against real logs |
+| `tests/MultiBox.Core.Tests` | `net10.0` | 227 xunit tests, mostly against real logs |
 
 `MultiBox.Core` has **no third-party dependencies** — `System.Text.Json` and
 `System.Net.Http` only.
@@ -162,7 +162,12 @@ log banner "Listener: Commander Tyrael"  ⟷  window title "EVE - Commander Tyra
 
 This is the same mechanism eve-o-preview uses, which is what makes the two tools
 interoperable and why the config keys match. The character-select screen shows a bare `EVE`
-title and is skipped.
+title, which is also what a client goes back to when a character logs off. `FindClients`
+skips it; `FindCharacterSelectClients` returns those handles alone, and the dashboard gives
+each one an `IdleClientCardViewModel` after the character cards, ordered by
+`FleetLayout.KeepOrder` so focusing a client (which changes the z-order `EnumWindows` reports)
+does not reshuffle them. The title rules live in `MultiBox.Core.Model.EveWindowTitle` so they
+are tested off Windows.
 
 `CountOpenClients` counts that bare `EVE` title as well, because settings sync must also wait
 for a client sitting at character select.

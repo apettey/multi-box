@@ -69,6 +69,14 @@ even if it has not written a log this session — for instance when that charact
 game logging switched off in EVE's settings. Its thumbnail and click-to-focus work straight
 away; its numbers and combat log stay empty until EVE writes a gamelog for it.
 
+**A client you have logged off stays on the grid.** Logging a character off without closing
+the client takes it back to character select, and its window title back to a bare `EVE`. That
+client gets a **Character select** card after all the character cards, with its live
+thumbnail; click it to bring the client to the front and log in again. It has no numbers and
+no F-key label, and it cannot be dragged. When a character logs back in, the card is replaced
+by that character's own card within a few seconds. The status line counts them: "Watching 5
+character(s). 2 at character select."
+
 Untick **Open only** to show every character it has ever seen a log for this session.
 
 ### A character card
@@ -341,8 +349,9 @@ the list.
 **No characters.** Run `multibox-replay.exe doctor`. If it finds no logs, check that logging
 is enabled in EVE and that the folders it prints are where your client is actually writing.
 
-**Thumbnails are blank.** The client has to be running and logged in — a character-select
-screen has the bare title `EVE` and is skipped. Check that the card shows the pilot's name.
+**Thumbnails are blank.** The client has to be running. A client at character select shows
+on its own **Character select** card at the end of the grid, not on the card of the character
+who was last logged in on it.
 
 **A hotkey does nothing.** Another application probably owns it; the cycle groups window lists
 any that Windows refused. `F13`–`F24` are usually free.

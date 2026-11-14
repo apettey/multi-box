@@ -31,6 +31,12 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     private readonly Dictionary<long, CharacterCardViewModel> _cards = new();
     private readonly List<CharacterCardViewModel> _all = new();
 
+    /// <summary>
+    /// Clients open at character select, in the order they were first seen. They follow the
+    /// character cards so logging a character off does not make its client vanish.
+    /// </summary>
+    private List<IdleClientCardViewModel> _idle = new();
+
     public FleetViewModel(MultiBoxConfig config, string configPath)
     {
         _config = config;
@@ -81,8 +87,8 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     /// <summary>The last sync's outcome, carried on the status line until the next one.</summary>
     private string? _syncNote;
 
-    /// <summary>Cards on the active squad tab.</summary>
-    public ObservableCollection<CharacterCardViewModel> Cards { get; } = new();
+    /// <summary>Cards on the active squad tab: characters first, then clients at character select.</summary>
+    public ObservableCollection<ClientCardViewModel> Cards { get; } = new();
 
     public ObservableCollection<CommsRowViewModel> Messages { get; } = new();
     public ObservableCollection<ChannelChipViewModel> Channels { get; } = new();
@@ -303,14 +309,15 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         foreach (var card in _all)
             card.Refresh(now);
 
-        var incoming = Cards.Sum(c => c.DpsIn);
-        var reps = Cards.Sum(c => c.RepsIn);
-        var neut = Cards.Sum(c => c.NeutIn);
+        var characters = Cards.OfType<CharacterCardViewModel>().ToList();
+        var incoming = characters.Sum(c => c.DpsIn);
+        var reps = characters.Sum(c => c.RepsIn);
+        var neut = characters.Sum(c => c.NeutIn);
 
         FleetIncoming = incoming.ToString("N0");
         FleetReps = reps.ToString("N0");
         FleetNeut = neut > 0 ? "-" + neut.ToString("N0") : "0";
-        EwarAlerts = Cards.Sum(c => c.Ewar.Count);
+        EwarAlerts = characters.Sum(c => c.Ewar.Count);
     }
 
     private void SampleHistory()
@@ -374,6 +381,7 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         Status = (_all.Count == 0
             ? "No EVE logs found yet — waiting for a client to write one."
             : $"Watching {_all.Count} character(s).")
+            + (_idle.Count == 0 ? string.Empty : $"  {_idle.Count} at character select.")
             + (_syncNote is null ? string.Empty : "  " + _syncNote);
     }
 
@@ -397,11 +405,25 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
             }
 
             EveClientLocator.TrackLayouts(_config);
+            TrackIdleClients(EveClientLocator.FindCharacterSelectClients());
         }
         catch (Exception)
         {
             // Window enumeration is a nicety; the numbers work without it.
         }
+    }
+
+    /// <summary>
+    /// Keeps one card per client at character select. Existing cards keep their place, so
+    /// focusing a different client (which changes the window z-order) does not reshuffle them.
+    /// </summary>
+    private void TrackIdleClients(IReadOnlyList<IntPtr> handles)
+    {
+        var order = FleetLayout.KeepOrder(_idle.Select(c => c.ClientHandle), handles);
+        var existing = _idle.ToDictionary(c => c.ClientHandle);
+        _idle = order
+            .Select(h => existing.TryGetValue(h, out var card) ? card : new IdleClientCardViewModel(h))
+            .ToList();
     }
 
     // --- ordering and squads --------------------------------------------------------------
@@ -432,17 +454,24 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
     /// The characters eligible for a card: everyone, or only those with a client open.
     /// Ordering is the saved order, so hiding a closed client does not reshuffle the rest.
     /// </summary>
-    private List<CharacterCardViewModel> Visible() =>
+    private List<CharacterCardViewModel> VisibleCharacters() =>
         _config.ShowOnlyRunningClients
             ? _all.Where(c => c.ClientRunning).ToList()
             : _all.ToList();
+
+    /// <summary>Everything on the grid, across all squads: the characters, then idle clients.</summary>
+    private List<ClientCardViewModel> Visible() =>
+        VisibleCharacters().Cast<ClientCardViewModel>().Concat(_idle).ToList();
 
     /// <summary>Re-evaluates who is on the grid. Cheap, and called whenever clients change.</summary>
     private void RefreshVisible()
     {
         var visible = Visible();
-        var unchanged = visible.Count == _lastVisibleCount;
-        _lastVisibleCount = visible.Count;
+
+        // Compared by identity, not count: a character logging off swaps its card for an
+        // idle one, and the count alone would not notice.
+        var unchanged = visible.SequenceEqual(_lastVisible);
+        _lastVisible = visible;
 
         RebuildSquads();
 
@@ -451,10 +480,10 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         if (!unchanged || Cards.Count == 0)
             ShowSquad(_activeSquad);
 
-        HiddenCount = _all.Count - visible.Count;
+        HiddenCount = _all.Count - VisibleCharacters().Count;
     }
 
-    private int _lastVisibleCount = -1;
+    private List<ClientCardViewModel> _lastVisible = new();
 
     private int _hiddenCount;
 
@@ -496,7 +525,8 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
         for (var i = 0; i < members.Count; i++)
         {
             // F1-F12 label the first twelve; past that there is no function key to name.
-            members[i].Hotkey = i < 12 ? "F" + (i + 1) : string.Empty;
+            // A client at character select has no pilot to switch to, so it gets no label.
+            members[i].Hotkey = i < 12 && members[i] is CharacterCardViewModel ? "F" + (i + 1) : string.Empty;
             Cards.Add(members[i]);
         }
 
@@ -593,7 +623,7 @@ public sealed class FleetViewModel : ObservableObject, IDisposable
 
     public void TestVoice()
     {
-        var who = Cards.FirstOrDefault()?.Name ?? "Commander";
+        var who = Cards.OfType<CharacterCardViewModel>().FirstOrDefault()?.Name ?? "Commander";
         _voice.Say($"Web detected. {who}.");
     }
 
