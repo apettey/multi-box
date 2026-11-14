@@ -4,9 +4,7 @@
       "pr": 24,
       "date": "2026-11-14",
       "title": "Logged-off clients stay on the dashboard",
-      "description": "Logging a character off without closing the client no longer makes it disappear from MultiBox. The client gets a Character select card after your character cards, with its live preview: click it to bring that client to the front and log in again.
-
-When a character logs back in, the card turns back into that character's own card. Character select cards don't count towards CARDS, so a full squad never pushes them onto a tab of their own.",
+      "description": "Logging a character off without closing the client no longer makes it disappear from MultiBox. The client gets a Character select card after your character cards, with its live preview: click it to bring that client to the front and log in again.\n\nWhen a character logs back in, the card turns back into that character's own card. Character select cards don't count towards CARDS, so a full squad never pushes them onto a tab of their own.",
       "images": [
         {
           "src": "whats-new/img/pr-24-logged-off-clients.png",
