@@ -56,12 +56,12 @@ public sealed class ThumbnailOverlay : IDisposable
             if (card.ClientHandle == IntPtr.Zero || !slot.IsVisible)
                 continue;
 
-            if (!_thumbnails.TryGetValue(card.Name, out var thumbnail))
-                _thumbnails[card.Name] = thumbnail = new DwmThumbnail(_handle);
+            if (!_thumbnails.TryGetValue(card.ThumbnailKey, out var thumbnail))
+                _thumbnails[card.ThumbnailKey] = thumbnail = new DwmThumbnail(_handle);
 
             thumbnail.SetSource(card.ClientHandle);
             Place(thumbnail, slot);
-            live.Add(card.Name);
+            live.Add(card.ThumbnailKey);
         }
 
         // A client that closed must lose its thumbnail, otherwise the compositor keeps
@@ -98,11 +98,11 @@ public sealed class ThumbnailOverlay : IDisposable
     }
 
     /// <summary>Every card's thumbnail slot, paired with the card it belongs to.</summary>
-    private IEnumerable<(CharacterCardViewModel Card, FrameworkElement Slot)> Slots()
+    private IEnumerable<(ClientCardViewModel Card, FrameworkElement Slot)> Slots()
     {
         foreach (var item in _host.Items)
         {
-            if (item is not CharacterCardViewModel card)
+            if (item is not ClientCardViewModel card)
                 continue;
 
             if (_host.ItemContainerGenerator.ContainerFromItem(item) is not DependencyObject container)

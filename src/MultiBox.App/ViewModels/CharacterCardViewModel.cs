@@ -6,7 +6,7 @@ using MultiBox.Core.Stats;
 namespace MultiBox.App.ViewModels;
 
 /// <summary>One character card on the fleet grid.</summary>
-public sealed class CharacterCardViewModel : ObservableObject
+public sealed class CharacterCardViewModel : ClientCardViewModel
 {
     private const int SparkWidth = 100;
     private const int SparkHeight = 22;
@@ -34,6 +34,8 @@ public sealed class CharacterCardViewModel : ObservableObject
     public string Name { get; }
     public long CharacterId { get; }
 
+    public override string ThumbnailKey => Name;
+
     private string _role;
     public string Role
     {
@@ -42,9 +44,6 @@ public sealed class CharacterCardViewModel : ObservableObject
     }
 
     public Brush RoleBrush => Palette.ForRole(Role);
-
-    private string _hotkey = string.Empty;
-    public string Hotkey { get => _hotkey; set => Set(ref _hotkey, value); }
 
     private string? _ship;
     public string? Ship { get => _ship; private set => Set(ref _ship, value); }
@@ -189,9 +188,6 @@ public sealed class CharacterCardViewModel : ObservableObject
 
     private bool _isForeground;
     public bool IsForeground { get => _isForeground; set => Set(ref _isForeground, value); }
-
-    /// <summary>Handle of this character's EVE window, or zero when it is not running.</summary>
-    public IntPtr ClientHandle { get; set; } = IntPtr.Zero;
 
     private bool _isDragging;
     public bool IsDragging

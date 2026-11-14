@@ -92,4 +92,45 @@ public static class FleetLayout
         var size = Math.Max(1, squadSize);
         return characters.Skip(Math.Max(0, squadIndex) * size).Take(size);
     }
+
+    /// <summary>
+    /// One squad tab's cards when clients at character select are on the grid too: that
+    /// squad's slice of the characters, and on the last squad, every idle client after them.
+    ///
+    /// Idle clients do not count against the squad size. Counting them would push a logged-off
+    /// client onto a squad tab of its own whenever the squads were full, which hides it just as
+    /// thoroughly as leaving it off the grid.
+    /// </summary>
+    public static List<T> Squad<T>(IReadOnlyList<T> characters, IReadOnlyList<T> idle, int squadIndex, int squadSize)
+    {
+        var members = Squad(characters, squadIndex, squadSize).ToList();
+        if (squadIndex == SquadCount(characters.Count, squadSize) - 1)
+            members.AddRange(idle);
+        return members;
+    }
+
+    /// <summary>
+    /// The F-key label for a card at a position on its squad tab. F1-F12 label the first
+    /// twelve; past that there is no function key to name, and a client at character select
+    /// has no pilot to switch to, so it gets none.
+    /// </summary>
+    public static string HotkeyLabel(int position, bool isCharacter) =>
+        isCharacter && position is >= 0 and < 12 ? "F" + (position + 1) : string.Empty;
+
+    /// <summary>
+    /// The items in <paramref name="found"/>, keeping the order of <paramref name="current"/>
+    /// for those already in it and appending new ones in the order found.
+    ///
+    /// Windows are enumerated in z-order, which changes every time a client is focused. A
+    /// list rebuilt straight from the enumeration would reshuffle its cards on each alt-tab.
+    /// </summary>
+    public static List<T> KeepOrder<T>(IEnumerable<T> current, IEnumerable<T> found)
+    {
+        var wanted = found.Distinct().ToList();
+        var present = wanted.ToHashSet();
+        var kept = current.Where(present.Contains).Distinct().ToList();
+        var known = kept.ToHashSet();
+        kept.AddRange(wanted.Where(f => !known.Contains(f)));
+        return kept;
+    }
 }

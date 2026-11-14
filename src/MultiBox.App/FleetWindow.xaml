@@ -419,6 +419,66 @@
             </DataTemplate.Triggers>
         </DataTemplate>
 
+        <!-- A client open at character select: logged off, or not logged in yet. There are no
+             logs behind it, so it is a preview and a click target, nothing more. It sits after
+             the character cards and is not draggable: its place is "after the pilots". -->
+        <DataTemplate x:Key="IdleClientCard">
+            <Grid Margin="5">
+                <Border Background="{x:Static local:Palette.Panel}" CornerRadius="5"
+                        BorderThickness="1" BorderBrush="{x:Static local:Palette.CardBorder}"/>
+
+                <Grid x:Name="IdleRoot">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="10,9,10,6">
+                        <TextBlock Text="Character select" FontFamily="{StaticResource Sans}"
+                                   FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{x:Static local:Palette.TextMuted}"/>
+                        <Border HorizontalAlignment="Right" VerticalAlignment="Center"
+                                CornerRadius="3" Padding="5,1" BorderThickness="1"
+                                BorderBrush="{x:Static local:Palette.CardBorder}">
+                            <TextBlock Text="NOT LOGGED IN" FontFamily="{StaticResource Mono}" FontSize="9"
+                                       Foreground="{x:Static local:Palette.TextMuted}"/>
+                        </Border>
+                    </Grid>
+
+                    <!-- The whole cell is the click target, so it still works with previews off. -->
+                    <Grid x:Name="IdleThumbCell" Grid.Row="1" Margin="10,0,10,10" Cursor="Hand"
+                          Background="Transparent" MouseLeftButtonUp="Thumbnail_Click"
+                          ToolTip="Click to bring this client to the front">
+                        <!-- Only with previews off: with them on, the slot is top-aligned and a
+                             centred label would poke out under a live picture of the client. -->
+                        <TextBlock Text="no character logged in" HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" FontFamily="{StaticResource Mono}"
+                                   FontSize="10" Foreground="{x:Static local:Palette.TextFaint}"
+                                   IsHitTestVisible="False"
+                                   Visibility="{Binding DataContext.ShowThumbnails,
+                                                RelativeSource={RelativeSource AncestorType=Window},
+                                                Converter={StaticResource Hide}}"/>
+                        <!-- 16:9 and as large as the cell allows; the compositor draws into it. -->
+                        <Border Tag="ThumbSlot" VerticalAlignment="Top" HorizontalAlignment="Center"
+                                CornerRadius="3" BorderThickness="1"
+                                BorderBrush="{x:Static local:Palette.Divider}"
+                                Visibility="{Binding DataContext.ShowThumbnails,
+                                             RelativeSource={RelativeSource AncestorType=Window},
+                                             Converter={StaticResource Show}}"
+                                Width="{Binding ActualWidth, ElementName=IdleThumbCell}"
+                                MaxWidth="{Binding ActualHeight, ElementName=IdleThumbCell,
+                                           Converter={StaticResource WidthFromHeight}}"
+                                Height="{Binding ActualWidth, RelativeSource={RelativeSource Self},
+                                         Converter={StaticResource Aspect}}"/>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </DataTemplate>
+
+        <local:CardTemplateSelector x:Key="CardTemplates"
+                                    Character="{StaticResource CharacterCard}"
+                                    IdleClient="{StaticResource IdleClientCard}"/>
+
         <!-- Comms row. -->
         <DataTemplate x:Key="CommsRow">
             <Grid Margin="0,0,0,7">
@@ -643,7 +703,7 @@
             </Grid.ColumnDefinitions>
 
             <ItemsControl x:Name="CardHost" Grid.Column="0" ItemsSource="{Binding Cards}"
-                          ItemTemplate="{StaticResource CharacterCard}">
+                          ItemTemplateSelector="{StaticResource CardTemplates}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Columns="{Binding DataContext.GridColumns,

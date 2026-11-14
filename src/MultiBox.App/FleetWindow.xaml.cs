@@ -147,7 +147,7 @@ public partial class FleetWindow : Window
         if (!_config.ClickToFocus)
             return;
 
-        if (sender is FrameworkElement { DataContext: CharacterCardViewModel card })
+        if (sender is FrameworkElement { DataContext: ClientCardViewModel card })
             ClientFocus.Activate(card.ClientHandle);
     }
 

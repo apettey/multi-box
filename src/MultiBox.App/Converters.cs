@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
+using MultiBox.App.ViewModels;
 
 namespace MultiBox.App;
 
@@ -37,4 +39,14 @@ public sealed class AspectRatioConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         throw new NotSupportedException();
+}
+
+/// <summary>Picks the card template for a grid slot: a character, or a client at character select.</summary>
+public sealed class CardTemplateSelector : DataTemplateSelector
+{
+    public DataTemplate? Character { get; set; }
+    public DataTemplate? IdleClient { get; set; }
+
+    public override DataTemplate? SelectTemplate(object item, DependencyObject container) =>
+        item is IdleClientCardViewModel ? IdleClient : Character;
 }
