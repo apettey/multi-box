@@ -9,6 +9,7 @@ players. Internal changes start with `Internal:`.
 
 | Date | Change | Summary |
 | --- | --- | --- |
+| 2026-11-14 | [Logged-off clients stay on the dashboard](2026-11-14-logged-off-clients/README.md) | A client you log off without closing stays on the grid as a Character select card you can click to bring forward |
 | 2026-11-03 | [Keyboard shortcuts in settings sync](2026-11-03-account-settings-sync/README.md) | Settings sync can now copy your keyboard shortcuts to your other accounts, along with camera settings, chat channels and saved overview profiles |
 | 2026-10-19 | [Sync each profile within itself](2026-10-19-settings-sync-within-profiles/README.md) | Settings sync can keep a different layout per launcher profile: "Sync each one within itself" syncs every ticked profile from your main character's own copy there |
 | 2026-10-18 | [Pin the shared release actions](2026-10-18-pin-shared-actions/README.md) | Internal: release and CI use the shared eve-contracts actions pinned to a commit, updated by Dependabot PRs, instead of `@main` |
