@@ -449,10 +449,15 @@
                     <Grid x:Name="IdleThumbCell" Grid.Row="1" Margin="10,0,10,10" Cursor="Hand"
                           Background="Transparent" MouseLeftButtonUp="Thumbnail_Click"
                           ToolTip="Click to bring this client to the front">
+                        <!-- Only with previews off: with them on, the slot is top-aligned and a
+                             centred label would poke out under a live picture of the client. -->
                         <TextBlock Text="no character logged in" HorizontalAlignment="Center"
                                    VerticalAlignment="Center" FontFamily="{StaticResource Mono}"
                                    FontSize="10" Foreground="{x:Static local:Palette.TextFaint}"
-                                   IsHitTestVisible="False"/>
+                                   IsHitTestVisible="False"
+                                   Visibility="{Binding DataContext.ShowThumbnails,
+                                                RelativeSource={RelativeSource AncestorType=Window},
+                                                Converter={StaticResource Hide}}"/>
                         <!-- 16:9 and as large as the cell allows; the compositor draws into it. -->
                         <Border Tag="ThumbSlot" VerticalAlignment="Top" HorizontalAlignment="Center"
                                 CornerRadius="3" BorderThickness="1"
