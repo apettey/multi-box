@@ -162,9 +162,10 @@ log banner "Listener: Commander Tyrael"  ⟷  window title "EVE - Commander Tyra
 
 This is the same mechanism eve-o-preview uses, which is what makes the two tools
 interoperable and why the config keys match. The character-select screen shows a bare `EVE`
-title, which is also what a client goes back to when a character logs off. `FindClients`
-skips it; `FindCharacterSelectClients` returns those handles alone, and the dashboard gives
-each one an `IdleClientCardViewModel` after the character cards, ordered by
+title, which is also what a client goes back to when a character logs off. `Scan`
+sorts every window into logged-in clients and character-select handles in one pass
+(`FindClients` is its logged-in half), and the dashboard gives each character-select
+client an `IdleClientCardViewModel` after the character cards, ordered by
 `FleetLayout.KeepOrder` so focusing a client (which changes the z-order `EnumWindows` reports)
 does not reshuffle them. The title rules live in `MultiBox.Core.Model.EveWindowTitle` so they
 are tested off Windows.
